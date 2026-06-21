@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sim-app"
+version = "0.1.0"
+description = "3D transcript-level spatial transcriptomics simulation utilities."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "anndata>=0.10",
+    "matplotlib>=3.7",
+    "numpy>=1.23",
+    "scipy>=1.10",
+]
+
+[project.urls]
+Repository = "https://github.com/janmatthias/sim_app"
+
+[tool.setuptools.packages.find]
+where = ["src"]
