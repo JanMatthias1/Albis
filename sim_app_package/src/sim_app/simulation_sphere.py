@@ -41,10 +41,6 @@ Notes:
 
 import os
 import numpy as np
-import matplotlib
-matplotlib.use("Agg")
-
-import matplotlib.pyplot as plt
 from scipy.sparse import csr_matrix
 from scipy.spatial import cKDTree
 from scipy.stats import chi2
@@ -754,6 +750,9 @@ def add_spatial_keys_for_axis(
         }
 
     adata.obsm[unaligned_key] = out2d
+    spatial3d_unaligned = coords3d.copy()
+    spatial3d_unaligned[:, dims] = out2d
+    adata.obsm["spatial_3d_unaligned"] = spatial3d_unaligned
 
 
 # -------------------------
@@ -1073,6 +1072,7 @@ def make_cell_sectioned_with_batch(adata_cell_obs, axis="Z", n_slices=10, batch_
     sec = adata_cell_obs.copy()
     sec.obs["slice_axis"] = axis
     sec.obs["slice_id"] = sec.obs[key].astype(int)
+    sec.layers["counts_pre_batch"] = sec.X.copy()
 
     X_be, factors = apply_batch_effect_per_slice_sparse(
         sec.X.tocsr(), slice_ids=sec.obs["slice_id"].values, n_slices=n_slices,
@@ -1155,8 +1155,36 @@ def simulate_3d_molecule_sphere_multires(
     # general
     seed=2025,
     sparse_X=True,
+
+    # optional output selection
+    output_modalities=None,
+    slice_axes=None,
 ):
     rng = np.random.default_rng(seed)
+
+    valid_modalities = {"cell", "bin", "spot"}
+    if output_modalities is None:
+        output_modalities = valid_modalities
+    elif isinstance(output_modalities, str):
+        output_modalities = {output_modalities.lower()}
+    else:
+        output_modalities = {str(modality).lower() for modality in output_modalities}
+    invalid_modalities = output_modalities - valid_modalities
+    if invalid_modalities:
+        names = ", ".join(sorted(invalid_modalities))
+        raise ValueError(f"Unsupported output modalities: {names}.")
+
+    if slice_axes is None:
+        slice_axes = ("X", "Y", "Z")
+    elif isinstance(slice_axes, str):
+        slice_axes = (slice_axes,)
+    output_axes = tuple(dict.fromkeys(str(axis).upper() for axis in slice_axes))
+    if not output_axes or any(axis not in {"X", "Y", "Z"} for axis in output_axes):
+        raise ValueError("slice_axes must contain one or more values from 'X', 'Y', 'Z'.")
+
+    generate_cells = "cell" in output_modalities
+    generate_bins = "bin" in output_modalities
+    generate_spots = "spot" in output_modalities
 
     # ---- domain->type mix ----
     if domain_type_mix is None:
@@ -1276,20 +1304,23 @@ def simulate_3d_molecule_sphere_multires(
         )
         sigmas[c] = float(sigma)
 
+        n_mols_generated_total += xyz.shape[0]
+
+        # ---- (B) FULL stream: keep everything for bins/spots ----
+        if generate_bins or generate_spots:
+            mol_xyz_all_full.append(xyz.astype(np.float32))
+            mol_gene_all_full.append(gene_ids.astype(np.int32))
+            mol_src_celltype_all_full.append(np.full(xyz.shape[0], cell_type_ids[c], dtype=np.int32))
+            mol_src_domain_all_full.append(np.full(xyz.shape[0], domain_ids[c], dtype=np.int32))
+
+        # ---- (A) CELL stream: only those that land in some cell ----
+        if not generate_cells:
+            continue
+
         assigned = assign_points_to_cells_by_containment(
             xyz, cell_centers=centers, cell_radii=radii, tree=tree, k=assign_k
         )
-
-        n_mols_generated_total += xyz.shape[0]
         n_mols_unassigned_total += int(np.sum(assigned < 0))
-
-        # ---- (B) FULL stream: keep everything for bins/spots ----
-        mol_xyz_all_full.append(xyz.astype(np.float32))
-        mol_gene_all_full.append(gene_ids.astype(np.int32))
-        mol_src_celltype_all_full.append(np.full(xyz.shape[0], cell_type_ids[c], dtype=np.int32))
-        mol_src_domain_all_full.append(np.full(xyz.shape[0], domain_ids[c], dtype=np.int32))
-
-        # ---- (A) CELL stream: only those that land in some cell ----
         keep = assigned >= 0
         if not np.any(keep):
             continue
@@ -1328,9 +1359,12 @@ def simulate_3d_molecule_sphere_multires(
         mol_src_domain_full = np.zeros((0,), dtype=np.int32)
 
     # ---- observed cell-level counts (spillover allowed by observed containment) ----
-    X_cell_obs = aggregate_molecules_to_cell_level(
-        gene_ids=mol_gene, assigned_cell_ids=mol_assigned_cell, n_cells=n_cells, n_genes=n_genes
-    )
+    if generate_cells:
+        X_cell_obs = aggregate_molecules_to_cell_level(
+            gene_ids=mol_gene, assigned_cell_ids=mol_assigned_cell, n_cells=n_cells, n_genes=n_genes
+        )
+    else:
+        X_cell_obs = X_cell_true.copy()
 
     # ---- AnnData: cell true + cell observed ----
     dom_names = [f"D{d}" for d in range(n_domains)]
@@ -1363,7 +1397,7 @@ def simulate_3d_molecule_sphere_multires(
 
     # ---- cell-level: sectioned versions with batch effects ----
     cell_sectioned = {}
-    for AX in ["X", "Y", "Z"]:
+    for AX in (output_axes if generate_cells else ()):
         sec = make_cell_sectioned_with_batch(
             adata_cell_obs, axis=AX, n_slices=n_slices, batch_sigma=batch_sigma, seed=seed + 1000 + ord(AX)
         )
@@ -1384,7 +1418,7 @@ def simulate_3d_molecule_sphere_multires(
     bin_adatas = {}
     spot_adatas = {}
 
-    for ax in ["x", "y", "z"]:
+    for ax in (tuple(axis.lower() for axis in output_axes) if generate_bins else ()):
         # bins (VisiumHD) within 6.5×6.5mm window
         Xb, obs_b, spatial3d_b, ct_frac_b, dom_frac_b = aggregate_molecules_to_grid_bins_2d_slices_window(
             mol_xyz=mol_xyz_full,
@@ -1403,6 +1437,7 @@ def simulate_3d_molecule_sphere_multires(
         )
         adb = ad.AnnData(X=Xb, obs=obs_b, var=var)
         adb.var_names = gene_names
+        adb.layers["counts_pre_batch"] = adb.X.copy()
         adb.obsm["spatial"] = spatial3d_b  # temporarily 3D, will be re-mapped below
         adb.obsm["cell_type_frac_true"] = ct_frac_b
         adb.obsm["domain_frac_true"] = dom_frac_b
@@ -1431,6 +1466,7 @@ def simulate_3d_molecule_sphere_multires(
         )
         bin_adatas[ax.upper()] = adb
 
+    for ax in (tuple(axis.lower() for axis in output_axes) if generate_spots else ()):
         # spots (Visium) within 6.5×6.5mm window
         Xs, obs_s, spatial3d_s, ct_frac_s, dom_frac_s = aggregate_molecules_to_spots_2d_slices_window(
             mol_xyz=mol_xyz_full,
@@ -1450,6 +1486,7 @@ def simulate_3d_molecule_sphere_multires(
         )
         ads = ad.AnnData(X=Xs, obs=obs_s, var=var)
         ads.var_names = gene_names
+        ads.layers["counts_pre_batch"] = ads.X.copy()
         ads.obsm["spatial"] = spatial3d_s  # temporarily 3D, will be re-mapped below
         ads.obsm["cell_type_frac_true"] = ct_frac_s
         ads.obsm["domain_frac_true"] = dom_frac_s
@@ -1520,11 +1557,11 @@ def simulate_3d_molecule_sphere_multires(
 
         # molecule accounting
         n_molecules_generated_total=int(n_mols_generated_total),
-        n_molecules_assigned_total=int(n_mols_assigned_total),      # counted in cell-level
-        n_molecules_unassigned_total=int(n_mols_unassigned_total),  # assigned == -1 (still go to bins/spots)
+        n_molecules_assigned_total=(int(n_mols_assigned_total) if generate_cells else None),
+        n_molecules_unassigned_total=(int(n_mols_unassigned_total) if generate_cells else None),
 
         # Keep backward-compatible key name
-        n_molecules_total=int(n_mols_assigned_total),
+        n_molecules_total=(int(n_mols_assigned_total) if generate_cells else None),
     )
 
     adata_cell_true.uns["sim_params"] = _to_serializable(meta)

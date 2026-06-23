@@ -41,10 +41,6 @@ Notes:
 
 import os
 import numpy as np
-import matplotlib
-matplotlib.use("Agg")
-
-import matplotlib.pyplot as plt
 from scipy.sparse import csr_matrix
 from scipy.spatial import cKDTree
 from scipy.stats import chi2
