@@ -106,10 +106,11 @@ def _remove_truth_annotations(adata):
 def generate_data(parameters=None, /, **overrides):
     """Generate one selected, app-ready :class:`anndata.AnnData` object.
 
-    Parameters may be supplied as a mapping, for example
-    ``generate_data({"output": "bin", "slice_axis": "Z"})``. Keyword
-    overrides are also accepted. The initial public API supports a spherical
-    tissue with the existing ``core_wedges`` domain layout.
+    Parameters are usually supplied as keyword arguments, for example
+    ``generate_data(output="bin", slice_axis="Z")``. A mapping may also be
+    passed when callers need to build the configuration programmatically. The
+    initial public API supports a spherical tissue with the existing
+    ``core_wedges`` domain layout.
 
     The returned object always contains ``obsm["spatial_3d"]`` and aligned
     2D ``obsm["spatial"]`` coordinates. It includes

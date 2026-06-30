@@ -39,14 +39,12 @@ The PyPI package name is `sim-app`; the Python import name is `sim_app`.
 import sim_app
 
 adata = sim_app.generate_data(
-    {
-        "output": "bin",
-        "slice_axis": "Z",
-        "n_cells": 1_000,
-        "n_slices": 5,
-        "n_domains": 4,
-        "seed": 2025,
-    }
+    output="bin",
+    slice_axis="Z",
+    n_cells=1_000,
+    n_slices=5,
+    n_domains=4,
+    seed=2025,
 )
 
 figure = sim_app.plot(
@@ -62,15 +60,22 @@ adata.write_h5ad("simulation_bins_z.h5ad")
 ## `generate_data`
 
 ```python
-adata = sim_app.generate_data(parameters)
+adata = sim_app.generate_data(output="bin", slice_axis="Z")
 ```
 
-`parameters` is a dictionary. It can also be omitted to use
-`sim_app.DEFAULT_PARAMETERS`, or individual options can be passed as keyword
-arguments:
+Parameters are usually passed as keyword arguments. They can also be omitted to
+use `sim_app.DEFAULT_PARAMETERS`:
 
 ```python
 adata = sim_app.generate_data(output="spot", slice_axis="X", n_cells=2_000)
+```
+
+If you build a configuration programmatically, passing a dictionary is still
+supported:
+
+```python
+params = {"output": "spot", "slice_axis": "X", "n_cells": 2_000}
+adata = sim_app.generate_data(params)
 ```
 
 The function returns exactly **one** `AnnData` object. It does not generate
