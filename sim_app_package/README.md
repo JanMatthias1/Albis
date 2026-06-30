@@ -35,6 +35,11 @@ python -m pip install -e ".[plot]"
 
 The PyPI package name is `sim-app`; the Python import name is `sim_app`.
 
+## Tutorial
+
+A runnable Jupyter notebook is available at
+[`tutorial/sim_app_tutorial.ipynb`](../tutorial/sim_app_tutorial.ipynb).
+
 ## Quick start
 
 ```python
