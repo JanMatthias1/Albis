@@ -2,6 +2,7 @@
 
 from collections.abc import Mapping
 from copy import deepcopy
+from pathlib import Path
 
 from .simulation_sphere import _to_serializable, simulate_3d_molecule_sphere_multires
 
@@ -103,6 +104,19 @@ def _remove_truth_annotations(adata):
             del adata.obs[key]
 
 
+def _matrix_total(X):
+    total = X.sum()
+    if hasattr(total, "item"):
+        total = total.item()
+    return int(total)
+
+
+def _matrix_nnz(X):
+    if hasattr(X, "nnz"):
+        return int(X.nnz)
+    return int((X != 0).sum())
+
+
 def generate_data(parameters=None, /, **overrides):
     """Generate one selected, app-ready :class:`anndata.AnnData` object.
 
@@ -169,3 +183,62 @@ def generate_data(parameters=None, /, **overrides):
         "slice_axis": config["slice_axis"],
     }
     return adata
+
+
+def describe(adata):
+    """Return a compact summary of an app-ready :class:`anndata.AnnData` object."""
+    output = dict(adata.uns.get("output", {}))
+    slice_ids = []
+    if "slice_id" in adata.obs:
+        slice_ids = sorted(int(value) for value in adata.obs["slice_id"].unique())
+
+    truth_keys = []
+    for key in ("counts_pre_batch",):
+        if key in adata.layers:
+            truth_keys.append(f"layers['{key}']")
+    for key in ("cell_type_true", "domain_true", "cell_radius", "cell_sigma_for_95pct"):
+        if key in adata.obs:
+            truth_keys.append(f"obs['{key}']")
+    for key in ("cell_type_frac_true", "domain_frac_true"):
+        if key in adata.obsm:
+            truth_keys.append(f"obsm['{key}']")
+
+    return {
+        "n_obs": int(adata.n_obs),
+        "n_vars": int(adata.n_vars),
+        "total_counts": _matrix_total(adata.X),
+        "nonzero_counts": _matrix_nnz(adata.X),
+        "platform": output.get("platform"),
+        "slice_axis": output.get("slice_axis"),
+        "n_slices": len(slice_ids),
+        "slice_ids": slice_ids,
+        "obs_columns": list(map(str, adata.obs.columns)),
+        "var_columns": list(map(str, adata.var.columns)),
+        "layers": list(map(str, adata.layers.keys())),
+        "obsm_keys": list(map(str, adata.obsm.keys())),
+        "uns_keys": list(map(str, adata.uns.keys())),
+        "truth_annotations": truth_keys,
+    }
+
+
+def save(adata, path):
+    """Write an AnnData object to ``path`` and return the file path."""
+    output_path = Path(path)
+    adata.write_h5ad(output_path)
+    return output_path
+
+
+def example_data(**overrides):
+    """Generate a small example dataset for tutorials, tests, and quick checks."""
+    config = {
+        "output": "bin",
+        "slice_axis": "Z",
+        "n_cells": 250,
+        "n_slices": 3,
+        "sphere_radius_um": 200.0,
+        "capture_window_um": (300.0, 300.0),
+        "bin_size_um": 30.0,
+        "seed": 2025,
+    }
+    config.update(overrides)
+    return generate_data(**config)

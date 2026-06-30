@@ -8,7 +8,9 @@ is intentionally small:
 import sim_app
 
 adata = sim_app.generate_data(...)
+summary = sim_app.describe(adata)
 figure = sim_app.plot(adata, ...)
+path = sim_app.save(adata, "simulation.h5ad")
 ```
 
 The simulator creates cells in a sphere, generates negative-binomial
@@ -47,6 +49,8 @@ adata = sim_app.generate_data(
     seed=2025,
 )
 
+summary = sim_app.describe(adata)
+
 figure = sim_app.plot(
     adata,
     view="2d",
@@ -54,7 +58,7 @@ figure = sim_app.plot(
     color="domain_true",
 )
 
-adata.write_h5ad("simulation_bins_z.h5ad")
+sim_app.save(adata, "simulation_bins_z.h5ad")
 ```
 
 ## `generate_data`
@@ -81,6 +85,19 @@ adata = sim_app.generate_data(params)
 The function returns exactly **one** `AnnData` object. It does not generate
 unrequested platforms or slice axes. For example, requesting Z-axis bins skips
 cell-section outputs, spots, and X/Y bin outputs.
+
+For a small tutorial or smoke-test dataset, use:
+
+```python
+adata = sim_app.example_data()
+```
+
+`example_data()` calls `generate_data()` with smaller defaults. Keyword
+arguments can override those defaults:
+
+```python
+adata = sim_app.example_data(output="spot", slice_axis="Y", n_cells=500)
+```
 
 ### Parameters
 
@@ -155,6 +172,23 @@ assignment, so molecules can spill into another cell or be unassigned.
 Set `include_truth=False` to remove `counts_pre_batch`, composition fractions,
 and direct cell/domain truth labels from the returned object.
 
+## Describe and Save
+
+```python
+summary = sim_app.describe(adata)
+```
+
+`describe()` returns a plain dictionary with the most important contents of the
+object: observation and gene counts, total counts, output platform, slice axis,
+available coordinate keys, layers, metadata keys, and truth annotations.
+
+```python
+path = sim_app.save(adata, "simulation_bins_z.h5ad")
+```
+
+`save()` writes the object with AnnData's `.h5ad` format and returns the path.
+It is a convenience wrapper around `adata.write_h5ad(...)`.
+
 ## Plotting
 
 ```python
@@ -207,8 +241,7 @@ it builds only the selected modality and axis.
 - Sphere tissue geometry only.
 - Core-plus-wedge domain layout only.
 - Static Matplotlib plotting only.
-- No automatic file output; call `adata.write_h5ad(...)` when persistence is
-  required.
+- File output is `.h5ad` via `sim_app.save(...)` or `adata.write_h5ad(...)`.
 
 Future extensions can add ellipsoid/box geometries, additional domain layouts,
 and interactive plotting without changing the high-level `generate_data()`
