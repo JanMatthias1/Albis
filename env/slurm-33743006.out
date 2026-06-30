@@ -1,0 +1,2 @@
+Creating virtual environment at: /var/spool/slurm/d/job33743006/.venv
+Error: [Errno 13] Permission denied: '/var/spool/slurm/d/job33743006/.venv'
