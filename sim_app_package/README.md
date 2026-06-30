@@ -39,6 +39,11 @@ The PyPI package name is `sim-app`; the Python import name is `sim_app`.
 
 A runnable Jupyter notebook is available at
 [`tutorial/sim_app_tutorial.ipynb`](../tutorial/sim_app_tutorial.ipynb).
+To create a dedicated environment for it, run:
+
+```bash
+./env/create_tutorial_env.sh
+```
 
 ## Quick start
 
