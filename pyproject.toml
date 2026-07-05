@@ -8,6 +8,14 @@ version = "0.1.0"
 description = "3D transcript-level spatial transcriptomics simulation utilities."
 readme = "README.md"
 requires-python = ">=3.10"
+keywords = ["spatial-transcriptomics", "simulation", "anndata"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+]
 dependencies = [
     "anndata>=0.10",
     "numpy>=1.23",
@@ -18,9 +26,17 @@ dependencies = [
 plot = [
     "matplotlib>=3.7",
 ]
+dev = [
+    "pytest>=8",
+]
 
 [project.urls]
 Repository = "https://github.com/janmatthias/sim_app"
 
 [tool.setuptools.packages.find]
-where = ["src"]
+where = ["."]
+include = ["sim_app*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]

@@ -1,8 +1,25 @@
 # sim-app
 
-`sim-app` generates synthetic 3D spatial-transcriptomics data and returns one
-app-ready [`AnnData`](https://anndata.readthedocs.io/) object. The public API
-is intentionally small:
+`sim-app` is a small Python package for generating synthetic 3D
+spatial-transcriptomics data as app-ready
+[`AnnData`](https://anndata.readthedocs.io/) objects.
+
+The simulator creates cells in a sphere, generates negative-binomial
+gene-expression counts, expands those counts into individual transcript
+locations, and aggregates transcripts to cell, bin, or spot observations.
+
+```text
+sim_app/
+├── pyproject.toml
+├── README.md
+├── sim_app/
+│   ├── api.py
+│   ├── plotting.py
+│   └── simulation_sphere.py
+└── tests/
+```
+
+The public API is intentionally small:
 
 ```python
 import sim_app
@@ -13,17 +30,11 @@ figure = sim_app.plot(adata, ...)
 path = sim_app.save(adata, "simulation.h5ad")
 ```
 
-The simulator creates cells in a sphere, generates negative-binomial
-gene-expression counts, expands counts into individual molecules, and
-aggregates those molecules to cell, bin, or spot observations.
-
 ## Installation
 
-The package directory is this `sim_app_package` directory. For local
-development:
+For local development, install the package from the repository root:
 
 ```bash
-cd sim_app_package
 python -m pip install -e .
 ```
 
@@ -35,15 +46,15 @@ python -m pip install -e ".[plot]"
 
 The PyPI package name is `sim-app`; the Python import name is `sim_app`.
 
-## Tutorial
-
-A runnable Jupyter notebook is available at
-[`tutorial/sim_app_tutorial.ipynb`](../tutorial/sim_app_tutorial.ipynb).
-To create a dedicated environment for it, run:
+## Development
 
 ```bash
-./env/create_tutorial_env.sh
+python -m pip install -e ".[dev,plot]"
+python -m pytest
 ```
+
+This repository now contains only the Python package. Manuscript, paper,
+notebook, and tutorial material lives in the separate `sim_paper` repository.
 
 ## Quick start
 
