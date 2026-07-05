@@ -26,6 +26,11 @@ dependencies = [
 plot = [
     "matplotlib>=3.7",
 ]
+tutorial = [
+    "ipykernel>=6",
+    "nbformat>=5",
+    "notebook>=7",
+]
 dev = [
     "pytest>=8",
 ]

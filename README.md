@@ -64,6 +64,14 @@ A package-focused app tutorial is available at
 how to generate a small dataset, inspect the returned `AnnData`, plot aligned
 and unaligned coordinates, and save the result.
 
+To run it from this environment:
+
+```bash
+bash env/create_tutorial_env.sh
+conda activate sim-app-tutorial
+jupyter-notebook --no-browser --ip=0.0.0.0 --port 8888
+```
+
 ## Quick start
 
 ```python
