@@ -16,7 +16,8 @@ sim_app/
 │   ├── api.py
 │   ├── plotting.py
 │   └── simulation_sphere.py
-└── tests/
+├── tests/
+└── tutorial/
 ```
 
 The public API is intentionally small:
@@ -55,6 +56,13 @@ python -m pytest
 
 This repository now contains only the Python package. Manuscript, paper,
 notebook, and tutorial material lives in the separate `sim_paper` repository.
+
+## Tutorial
+
+A package-focused app tutorial is available at
+[`tutorial/sim_app_tutorial.ipynb`](tutorial/sim_app_tutorial.ipynb). It shows
+how to generate a small dataset, inspect the returned `AnnData`, plot aligned
+and unaligned coordinates, and save the result.
 
 ## Quick start
 
