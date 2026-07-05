@@ -3,6 +3,7 @@
 `sim-app` is a small Python package for generating synthetic 3D
 spatial-transcriptomics data as app-ready
 [`AnnData`](https://anndata.readthedocs.io/) objects.
+It is structured as an installable package with a small tutorial workflow.
 
 The simulator creates cells in a sphere, generates negative-binomial
 gene-expression counts, expands those counts into individual transcript
