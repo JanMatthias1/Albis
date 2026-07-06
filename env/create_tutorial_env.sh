@@ -20,8 +20,6 @@ else
     REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 fi
 
-echo "DEBUG: SLURM_SUBMIT_DIR=[${SLURM_SUBMIT_DIR:-UNSET}] REPO_ROOT=${REPO_ROOT}"
-
 CONDA_ENV_NAME="${CONDA_ENV_NAME:-sim-app-tutorial}"
 PYTHON_VERSION="${PYTHON_VERSION:-3.10}"
 KERNEL_NAME="${KERNEL_NAME:-sim-app-tutorial}"
@@ -55,6 +53,9 @@ python -m pip install -e "${REPO_ROOT}[tutorial,plot]"
 echo "[setup] Ensuring jupyter notebook + ipykernel are present"
 python -m pip install notebook ipykernel
 
+echo "[setup] Pinning jupyter_server to 2.18.2 (2.19+ omits the hostname URL needed for JHPCE portal access)"
+python -m pip install "jupyter_server==2.18.2"
+
 echo "[setup] Registering Jupyter kernel: ${KERNEL_DISPLAY_NAME}"
 python -m ipykernel install \
     --user \
@@ -66,9 +67,11 @@ python -c "
 import sim_app
 import notebook
 import ipykernel
+import jupyter_server
 print(f'sim_app {sim_app.__version__} OK')
 print('notebook OK')
 print('ipykernel OK')
+print(f'jupyter_server {jupyter_server.__version__} OK')
 "
 
 echo ""
