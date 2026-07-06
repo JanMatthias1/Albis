@@ -14,7 +14,7 @@ set -euo pipefail
 #   CONDA_ENV_NAME=my-env PYTHON_VERSION=3.11 bash create_sim_app_env.sh
 # =============================================================================
 
-REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+REPO_ROOT="${SLURM_SUBMIT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 
 CONDA_ENV_NAME="${CONDA_ENV_NAME:-sim-app-tutorial}"
 PYTHON_VERSION="${PYTHON_VERSION:-3.10}"
