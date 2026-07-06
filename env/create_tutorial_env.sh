@@ -11,7 +11,7 @@ set -euo pipefail
 #   bash create_sim_app_env.sh
 #
 # Override defaults with env vars:
-#   CONDA_ENV_NAME=my-env PYTHON_VERSION=3.11 bash create_sim_app_env.sh
+#   SIM_APP_CONDA_ENV=my-env SIM_APP_PYTHON_VERSION=3.11 bash env/create_tutorial_env.sh
 # =============================================================================
 
 if [[ -n "${SLURM_SUBMIT_DIR:-}" ]]; then
@@ -20,10 +20,10 @@ else
     REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 fi
 
-CONDA_ENV_NAME="${CONDA_ENV_NAME:-sim-app-tutorial}"
-PYTHON_VERSION="${PYTHON_VERSION:-3.10}"
-KERNEL_NAME="${KERNEL_NAME:-sim-app-tutorial}"
-KERNEL_DISPLAY_NAME="${KERNEL_DISPLAY_NAME:-Python (sim-app tutorial)}"
+CONDA_ENV_NAME="${SIM_APP_CONDA_ENV:-sim-app-tutorial}"
+PYTHON_VERSION="${SIM_APP_PYTHON_VERSION:-3.10}"
+KERNEL_NAME="${SIM_APP_KERNEL_NAME:-sim-app-tutorial}"
+KERNEL_DISPLAY_NAME="${SIM_APP_KERNEL_DISPLAY_NAME:-Python (sim-app tutorial)}"
 ENV_PREFIX="${REPO_ROOT}/env/${CONDA_ENV_NAME}"
 
 if ! command -v conda >/dev/null 2>&1; then
