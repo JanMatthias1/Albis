@@ -14,12 +14,17 @@ set -euo pipefail
 #   CONDA_ENV_NAME=my-env PYTHON_VERSION=3.11 bash create_sim_app_env.sh
 # =============================================================================
 
-REPO_ROOT="${SLURM_SUBMIT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
+if [[ -n "${SLURM_SUBMIT_DIR:-}" ]]; then
+    REPO_ROOT="${SLURM_SUBMIT_DIR}"
+else
+    REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+fi
 
 CONDA_ENV_NAME="${CONDA_ENV_NAME:-sim-app-tutorial}"
 PYTHON_VERSION="${PYTHON_VERSION:-3.10}"
 KERNEL_NAME="${KERNEL_NAME:-sim-app-tutorial}"
 KERNEL_DISPLAY_NAME="${KERNEL_DISPLAY_NAME:-Python (sim-app tutorial)}"
+ENV_PREFIX="${REPO_ROOT}/env/${CONDA_ENV_NAME}"
 
 if ! command -v conda >/dev/null 2>&1; then
     echo "ERROR: conda not found. Run: module load conda (or your cluster's conda module)." >&2
@@ -30,14 +35,14 @@ CONDA_BASE="$(conda info --base)"
 # shellcheck disable=SC1091
 source "${CONDA_BASE}/etc/profile.d/conda.sh"
 
-if conda env list | awk '{print $1}' | grep -qx "${CONDA_ENV_NAME}"; then
-    echo "[setup] Environment already exists: ${CONDA_ENV_NAME} — skipping creation."
+if [[ -d "${ENV_PREFIX}" ]]; then
+    echo "[setup] Environment already exists at ${ENV_PREFIX} — skipping creation."
 else
-    echo "[setup] Creating conda environment: ${CONDA_ENV_NAME} (python=${PYTHON_VERSION})"
-    conda create -y -n "${CONDA_ENV_NAME}" "python=${PYTHON_VERSION}" pip
+    echo "[setup] Creating conda environment at ${ENV_PREFIX} (python=${PYTHON_VERSION})"
+    conda create -y --prefix "${ENV_PREFIX}" "python=${PYTHON_VERSION}" pip
 fi
 
-conda activate "${CONDA_ENV_NAME}"
+conda activate "${ENV_PREFIX}"
 
 echo "[setup] Upgrading pip/setuptools/wheel"
 python -m pip install --upgrade pip setuptools wheel
@@ -65,10 +70,10 @@ print('ipykernel OK')
 "
 
 echo ""
-echo "[setup] Done. Environment: ${CONDA_ENV_NAME}"
+echo "[setup] Done. Environment created at: ${ENV_PREFIX}"
 echo ""
 echo "Activate with:"
-echo "  conda activate ${CONDA_ENV_NAME}"
+echo "  conda activate ${ENV_PREFIX}"
 echo ""
 echo "Start notebook with:"
 echo "  jupyter-notebook --no-browser --ip=0.0.0.0 --port=8888"
