@@ -17,11 +17,20 @@ DEFAULT_PARAMETERS = {
     "n_domains": 4,
     "domain_layout": "core_wedges",
     "core_frac": 0.35,
+    "core_bump_amp": 0.12,
+    "wedge_angle_amp_deg": 12.0,
+    "noise_terms": 6,
+    "noise_freq_range": (0.8, 2.2),
+    "boundary_fuzz_width_deg": 0.0,
+    "boundary_fuzz_flip_prob": 0.0,
+    "core_fuzz_width_um": 0.0,
+    "core_fuzz_flip_prob": 0.0,
     "n_cell_types": 4,
     "n_cells": 1_000,
     "allow_cell_overlap": False,
     "cell_radius_kwargs": None,
     "domain_type_mix": None,
+    "xenium_capture_window_um": (12_000.0, 24_000.0),
     "capture_window_um": (500.0, 500.0),
     "capture_window_center_um": (0.0, 0.0),
     "bin_size_um": 20.0,
@@ -36,6 +45,7 @@ DEFAULT_PARAMETERS = {
     "unaligned_coordinates": True,
     "max_deg": 180.0,
     "max_shift": 200.0,
+    "base_seed_unaligned": 12345,
     "seed": 2025,
 }
 
@@ -75,23 +85,30 @@ def _validate_parameters(config):
     if config["domain_layout"] != "core_wedges":
         raise ValueError("Only domain_layout='core_wedges' is supported in this release.")
 
-    for key in ("n_slices", "n_domains", "n_cell_types", "n_cells", "marker_genes_per_type", "assign_k"):
+    for key in ("n_slices", "n_domains", "n_cell_types", "n_cells", "marker_genes_per_type", "assign_k", "noise_terms"):
         if int(config[key]) <= 0:
             raise ValueError(f"{key} must be positive.")
 
     for key in ("sphere_radius_um", "bin_size_um", "spot_spacing_um", "spot_radius_um", "inside_prob"):
         if float(config[key]) <= 0:
             raise ValueError(f"{key} must be positive.")
+    for key in ("core_bump_amp", "wedge_angle_amp_deg", "boundary_fuzz_width_deg", "core_fuzz_width_um"):
+        if float(config[key]) < 0:
+            raise ValueError(f"{key} must be nonnegative.")
 
     if not 0 < float(config["inside_prob"]) < 1:
         raise ValueError("inside_prob must be between 0 and 1.")
+    for key in ("boundary_fuzz_flip_prob", "core_fuzz_flip_prob"):
+        if not 0 <= float(config[key]) <= 1:
+            raise ValueError(f"{key} must be between 0 and 1.")
 
-    for key in ("capture_window_um", "capture_window_center_um"):
+    for key in ("xenium_capture_window_um", "capture_window_um", "capture_window_center_um", "noise_freq_range"):
         value = config[key]
         if len(value) != 2:
             raise ValueError(f"{key} must contain exactly two values.")
-    if any(float(value) <= 0 for value in config["capture_window_um"]):
-        raise ValueError("capture_window_um values must be positive.")
+    for key in ("xenium_capture_window_um", "capture_window_um", "noise_freq_range"):
+        if any(float(value) <= 0 for value in config[key]):
+            raise ValueError(f"{key} values must be positive.")
 
 
 def _remove_truth_annotations(adata):
@@ -135,8 +152,17 @@ def generate_data(parameters=None, /, **overrides):
 
     simulation = simulate_3d_molecule_sphere_multires(
         sphere_R_um=float(config["sphere_radius_um"]),
+        xenium_capture_size_um=tuple(config["xenium_capture_window_um"]),
         n_domains=int(config["n_domains"]),
         core_frac=float(config["core_frac"]),
+        core_bump_amp=float(config["core_bump_amp"]),
+        wedge_angle_amp_deg=float(config["wedge_angle_amp_deg"]),
+        noise_terms=int(config["noise_terms"]),
+        noise_freq_range=tuple(config["noise_freq_range"]),
+        boundary_fuzz_width_deg=float(config["boundary_fuzz_width_deg"]),
+        boundary_fuzz_flip_prob=float(config["boundary_fuzz_flip_prob"]),
+        core_fuzz_width_um=float(config["core_fuzz_width_um"]),
+        core_fuzz_flip_prob=float(config["core_fuzz_flip_prob"]),
         n_cells=int(config["n_cells"]),
         allow_cell_overlap=bool(config["allow_cell_overlap"]),
         cell_radius_kwargs=config["cell_radius_kwargs"],
@@ -156,6 +182,7 @@ def generate_data(parameters=None, /, **overrides):
         spot_radius_um=float(config["spot_radius_um"]),
         max_deg=float(config["max_deg"]),
         max_shift=float(config["max_shift"]),
+        base_seed_unaligned=int(config["base_seed_unaligned"]),
         seed=int(config["seed"]),
         output_modalities=(config["output"],),
         slice_axes=(config["slice_axis"],),
