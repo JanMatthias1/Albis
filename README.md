@@ -139,88 +139,88 @@ adata = sim_app.example_data(output="spot", slice_axis="Y", n_cells=500)
 
 ### Parameters
 
-Parameters are grouped below in the order the simulator applies them: pick an
-output, build the tissue sphere, carve it into domains, roughen the domain
-boundaries, place cells and genes inside it, then cut, capture, and add batch
-effects across slices.
+Parameters are grouped below in the order the simulator applies them: select
+an output, build the tissue sphere, partition it into domains, roughen the
+domain boundaries, populate it with cells and genes, then slice, capture, and
+apply batch effects.
 
 #### Output selection
 
 | Parameter | Default | Meaning |
 | --- | ---: | --- |
-| `output` | `"bin"` | Observation type: `"cell"`, `"bin"`, or `"spot"`. |
-| `slice_axis` | `"Z"` | Axis normal to the 2D slices: `"X"`, `"Y"`, or `"Z"`. |
+| `output` | `"bin"` | Observation type to generate: `"cell"`, `"bin"`, or `"spot"`. |
+| `slice_axis` | `"Z"` | Axis normal to the 2D slice plane: `"X"`, `"Y"`, or `"Z"`. |
 
 #### 1. Tissue sphere
 
 | Parameter | Default | Meaning |
 | --- | ---: | --- |
-| `tissue_shape` | `"sphere"` | Tissue geometry. Only `"sphere"` is currently supported. |
+| `tissue_shape` | `"sphere"` | Overall tissue geometry; only `"sphere"` is currently supported. |
 | `sphere_radius_um` | `300.0` | Radius of the tissue sphere, in microns. |
 
 #### 2. Spatial domains
 
 | Parameter | Default | Meaning |
 | --- | ---: | --- |
-| `n_domains` | `4` | Number of spatial domains: `n_domains - 1` angular wedges plus one central core. |
-| `domain_layout` | `"core_wedges"` | Domain-generation strategy. Only `"core_wedges"` is currently supported. |
-| `core_frac` | `0.35` | Core radius as a fraction of the sphere *radius* (not volume): a value of `0.55`, for example, gives a core spanning ~17% of the sphere's volume. |
+| `n_domains` | `4` | Number of spatial domains: `n_domains - 1` angular wedges surrounding one central core. |
+| `domain_layout` | `"core_wedges"` | Domain-generation strategy; only `"core_wedges"` is currently supported. |
+| `core_frac` | `0.35` | Core radius as a fraction of the sphere radius, not its volume. For example, `0.55` yields a core occupying roughly 17% of the sphere's volume. |
 
 #### 3. Domain boundary irregularity
 
-By default the core and wedge boundaries are perfectly smooth and straight.
-These parameters add two independent kinds of irregularity: a continuous
+By default, core and wedge boundaries are smooth and straight. These
+parameters introduce two independent forms of irregularity: a continuous
 geometric warp of the boundary surfaces, and discrete relabeling ("fuzz") of
 individual points near those boundaries.
 
 | Parameter | Default | Meaning |
 | --- | ---: | --- |
-| `core_bump_amp` | `0.12` | Fractional, direction-dependent bump applied to the core radius (`0.0` = perfect sphere). |
-| `wedge_angle_amp_deg` | `12.0` | Angular wobble applied to wedge boundaries, in degrees (`0.0` = straight radial cuts). |
-| `noise_terms` | `6` | Number of summed sinusoidal components in the smooth noise field driving `core_bump_amp` and `wedge_angle_amp_deg`. More terms produce smoother, less directional noise. |
-| `noise_freq_range` | `(0.8, 2.2)` | Spatial-frequency range (cycles per micron) of that noise field. Higher frequencies produce finer-grained boundary texture. |
-| `boundary_fuzz_width_deg` | `0.0` | Angular band, in degrees, around each wedge-wedge boundary in which points may be relabeled to the neighboring wedge. |
-| `boundary_fuzz_flip_prob` | `0.0` | Probability that a point inside `boundary_fuzz_width_deg` of a boundary is relabeled to the neighboring wedge. |
-| `core_fuzz_width_um` | `0.0` | Radial band, in microns, around the (already-warped) core boundary in which points may be relabeled across the core/wedge interface. |
-| `core_fuzz_flip_prob` | `0.0` | Probability that a point inside `core_fuzz_width_um` of the core boundary is relabeled across the core/wedge interface. |
+| `core_bump_amp` | `0.12` | Fractional, direction-dependent perturbation of the core radius; `0.0` yields a perfect sphere. |
+| `wedge_angle_amp_deg` | `12.0` | Angular perturbation applied to wedge boundaries, in degrees; `0.0` yields straight radial cuts. |
+| `noise_terms` | `6` | Number of sinusoidal components summed to construct the smooth noise field underlying `core_bump_amp` and `wedge_angle_amp_deg`. Higher values yield smoother, less directional noise. |
+| `noise_freq_range` | `(0.8, 2.2)` | Spatial-frequency range (cycles per micron) of that noise field. Higher frequencies yield finer-grained boundary texture. |
+| `boundary_fuzz_width_deg` | `0.0` | Angular band, in degrees, around each wedge-wedge boundary within which points may be relabeled to the neighboring wedge. |
+| `boundary_fuzz_flip_prob` | `0.0` | Probability that a point within `boundary_fuzz_width_deg` of a boundary is relabeled to the neighboring wedge. |
+| `core_fuzz_width_um` | `0.0` | Radial band, in microns, around the core boundary within which points may be relabeled across the core/wedge interface. |
+| `core_fuzz_flip_prob` | `0.0` | Probability that a point within `core_fuzz_width_um` of the core boundary is relabeled across the core/wedge interface. |
 
 #### 4. Cells
 
 | Parameter | Default | Meaning |
 | --- | ---: | --- |
 | `n_cells` | `1000` | Number of simulated cells. |
-| `allow_cell_overlap` | `False` | Permit overlapping cell spheres during placement. |
+| `allow_cell_overlap` | `False` | Whether overlapping cell spheres are permitted during placement. |
 | `cell_radius_kwargs` | `None` | Optional low-level cell-radius distribution settings (`radius_dist`, `r_mean`, `r_sigma`, `r_min`, `r_max`). |
 | `n_cell_types` | `4` | Number of cell types. |
-| `domain_type_mix` | `None` | Optional `(n_domains, n_cell_types)` matrix; row `d` gives the cell-type probability distribution used to assign cells in domain `d`. |
+| `domain_type_mix` | `None` | Optional `(n_domains, n_cell_types)` composition matrix specifying which cell types occur in each domain, and in what proportions. Each row is renormalized to a probability distribution and used to draw the cell type of every cell assigned to that domain. Defaults to a small built-in 4x4 example composition, or a uniform mix when `n_domains`/`n_cell_types` differ from 4/4. |
 | `marker_genes_per_type` | `80` | Number of marker genes assigned to each cell type. |
 | `noise_gene_frac` | `0.10` | Fraction of the gene panel carrying no cell-type signal. |
-| `shared_marker_frac` | `0.25` | Fraction of each cell type's markers that are shared with other cell types, rather than unique to it. |
-| `inside_prob` | `0.95` | Target fraction of a cell's source molecules generated within its cell radius. |
-| `assign_k` | `8` | Number of nearby cells considered when reassigning molecules to cells by containment for `output="cell"`. |
+| `shared_marker_frac` | `0.25` | Fraction of each cell type's markers shared with other cell types, rather than unique to it. |
+| `inside_prob` | `0.95` | Target fraction of a cell's transcripts generated within its cell radius. |
+| `assign_k` | `8` | Number of nearest cells considered when reassigning transcripts to cells by containment, for `output="cell"`. |
 
 #### 5. Slicing, capture, and batch effects
 
 | Parameter | Default | Meaning |
 | --- | ---: | --- |
-| `n_slices` | `5` | Number of slices along the selected axis. |
-| `capture_window_um` | `(500, 500)` | Bin/spot capture-window width and height, in microns. Crops each 2D slice before binning/spot-aggregation; applies only to `output="bin"` or `"spot"`. |
-| `xenium_capture_window_um` | `(12000, 24000)` | Reserved for a future cell-level (Xenium-style) capture-window crop. Currently recorded in `adata.uns["captures"]` metadata only and **not yet applied** to filter or crop cells. |
-| `bin_size_um` | `20.0` | Bin width for `output="bin"`. |
-| `spot_spacing_um` | `100.0` | Spot-center spacing, in microns, for `output="spot"`. |
-| `spot_radius_um` | `27.5` | Spot capture radius, in microns, for `output="spot"`. |
-| `batch_sigma` | `0.15` | Standard deviation of the per-slice, per-gene log-fold-change applied as a simulated batch effect. |
-| `unaligned_coordinates` | `True` | Also generate a randomly rotated/translated ("unaligned") copy of each slice's coordinates. |
-| `max_deg` | `180.0` | Largest absolute per-slice in-plane rotation, in degrees, applied to unaligned coordinates. |
-| `max_shift` | `200.0` | Largest absolute per-slice in-plane translation, in microns, applied to unaligned coordinates. |
-| `include_truth` | `True` | Retain pre-batch-effect counts and ground-truth annotations in the returned object. |
+| `n_slices` | `5` | Number of slices generated along the selected axis. |
+| `capture_window_um` | `(500, 500)` | Width and height, in microns, of the rectangular capture window applied to each 2D slice before binning or spot aggregation. Applies only to `output="bin"` or `"spot"`. |
+| `xenium_capture_window_um` | `(12000, 24000)` | Reserved for a future cell-level (Xenium-style) capture-window crop. Currently recorded in `adata.uns["captures"]` metadata only, and **not yet used** to filter or crop cells. |
+| `bin_size_um` | `20.0` | Bin width, in microns, for `output="bin"`. |
+| `spot_spacing_um` | `100.0` | Center-to-center spacing between spots, in microns, for `output="spot"`. |
+| `spot_radius_um` | `27.5` | Capture radius of each spot, in microns, for `output="spot"`. |
+| `batch_sigma` | `0.15` | Standard deviation of the per-slice, per-gene log-fold-change applied to simulate batch effects across slices. |
+| `unaligned_coordinates` | `True` | Whether to additionally generate a randomly rotated and translated ("unaligned") copy of each slice's coordinates. |
+| `max_deg` | `180.0` | Maximum absolute per-slice in-plane rotation, in degrees, applied when generating unaligned coordinates. |
+| `max_shift` | `200.0` | Maximum absolute per-slice in-plane translation, in microns, applied when generating unaligned coordinates. |
+| `include_truth` | `True` | Whether to retain pre-batch-effect counts and ground-truth annotations in the returned object. |
 
 #### Reproducibility
 
 | Parameter | Default | Meaning |
 | --- | ---: | --- |
-| `seed` | `2025` | Random seed for reproducibility. |
-| `base_seed_unaligned` | `12345` | Base random seed for the per-slice unaligned-coordinate perturbation. |
+| `seed` | `2025` | Random seed governing cell placement, gene expression, and batch effects. |
+| `base_seed_unaligned` | `12345` | Random seed governing the per-slice rotation and translation used to generate unaligned coordinates. |
 
 Use `sim_app.DEFAULT_PARAMETERS` to inspect the complete supported parameter
 set. Unsupported values fail early with a descriptive error.
