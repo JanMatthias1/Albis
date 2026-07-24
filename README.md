@@ -1,6 +1,6 @@
 # sim-app
 
-`sim-app` is a small Python package for generating synthetic 3D
+`sim-app` is a  Python package for generating synthetic 3D
 spatial-transcriptomics data as app-ready
 [`AnnData`](https://anndata.readthedocs.io/) objects.
 It is structured as an installable package with a small tutorial workflow.
@@ -20,8 +20,6 @@ sim_app/
 ├── tests/
 └── tutorial/
 ```
-
-The public API is intentionally small:
 
 ```python
 import sim_app
@@ -140,9 +138,9 @@ adata = sim_app.example_data(output="spot", slice_axis="Y", n_cells=500)
 ### Parameters
 
 Parameters are grouped below in the order the simulator applies them: select
-an output, build the tissue sphere, partition it into domains, roughen the
-domain boundaries, populate it with cells and genes, then slice, capture, and
-apply batch effects.
+an output, build the tissue sphere, place cells within it, assign each cell to
+a spatial domain with irregular boundaries, assign cell types and generate
+genes and molecules, then slice, capture, and apply batch effects.
 
 #### Output selection
 
@@ -158,7 +156,22 @@ apply batch effects.
 | `tissue_shape` | `"sphere"` | Overall tissue geometry; only `"sphere"` is currently supported. |
 | `sphere_radius_um` | `300.0` | Radius of the tissue sphere, in microns. |
 
-#### 2. Spatial domains
+#### 2. Cell placement
+
+Cell centroids and radii are sampled within the tissue sphere before domains
+are assigned; domain membership is determined afterward, from each cell's
+position.
+
+| Parameter | Default | Meaning |
+| --- | ---: | --- |
+| `n_cells` | `1000` | Number of simulated cells. |
+| `allow_cell_overlap` | `False` | Whether overlapping cell spheres are permitted during placement. |
+| `cell_radius_kwargs` | `None` | Optional low-level cell-radius distribution settings (`radius_dist`, `r_mean`, `r_sigma`, `r_min`, `r_max`). |
+
+#### 3. Spatial domains
+
+Domain membership is evaluated per cell, using each cell's position within
+the sphere.
 
 | Parameter | Default | Meaning |
 | --- | ---: | --- |
@@ -166,7 +179,7 @@ apply batch effects.
 | `domain_layout` | `"core_wedges"` | Domain-generation strategy; only `"core_wedges"` is currently supported. |
 | `core_frac` | `0.35` | Core radius as a fraction of the sphere radius, not its volume. For example, `0.55` yields a core occupying roughly 17% of the sphere's volume. |
 
-#### 3. Domain boundary irregularity
+#### 4. Domain boundary irregularity
 
 By default, core and wedge boundaries are smooth and straight. These
 parameters introduce two independent forms of irregularity: a continuous
@@ -184,13 +197,14 @@ individual points near those boundaries.
 | `core_fuzz_width_um` | `0.0` | Radial band, in microns, around the core boundary within which points may be relabeled across the core/wedge interface. |
 | `core_fuzz_flip_prob` | `0.0` | Probability that a point within `core_fuzz_width_um` of the core boundary is relabeled across the core/wedge interface. |
 
-#### 4. Cells
+#### 5. Cell types, genes, and molecules
+
+Once each cell has a domain, it is assigned a cell type, a gene panel is
+built, and gene-expression counts are expanded into individual transcript
+locations.
 
 | Parameter | Default | Meaning |
 | --- | ---: | --- |
-| `n_cells` | `1000` | Number of simulated cells. |
-| `allow_cell_overlap` | `False` | Whether overlapping cell spheres are permitted during placement. |
-| `cell_radius_kwargs` | `None` | Optional low-level cell-radius distribution settings (`radius_dist`, `r_mean`, `r_sigma`, `r_min`, `r_max`). |
 | `n_cell_types` | `4` | Number of cell types. |
 | `domain_type_mix` | `None` | Optional `(n_domains, n_cell_types)` composition matrix specifying which cell types occur in each domain, and in what proportions. Each row is renormalized to a probability distribution and used to draw the cell type of every cell assigned to that domain. Defaults to a small built-in 4x4 example composition, or a uniform mix when `n_domains`/`n_cell_types` differ from 4/4. |
 | `marker_genes_per_type` | `80` | Number of marker genes assigned to each cell type. |
@@ -199,13 +213,12 @@ individual points near those boundaries.
 | `inside_prob` | `0.95` | Target fraction of a cell's transcripts generated within its cell radius. |
 | `assign_k` | `8` | Number of nearest cells considered when reassigning transcripts to cells by containment, for `output="cell"`. |
 
-#### 5. Slicing, capture, and batch effects
+#### 6. Slicing, capture, and batch effects
 
 | Parameter | Default | Meaning |
 | --- | ---: | --- |
 | `n_slices` | `5` | Number of slices generated along the selected axis. |
 | `capture_window_um` | `(500, 500)` | Width and height, in microns, of the rectangular capture window applied to each 2D slice before binning or spot aggregation. Applies only to `output="bin"` or `"spot"`. |
-| `xenium_capture_window_um` | `(12000, 24000)` | Reserved for a future cell-level (Xenium-style) capture-window crop. Currently recorded in `adata.uns["captures"]` metadata only, and **not yet used** to filter or crop cells. |
 | `bin_size_um` | `20.0` | Bin width, in microns, for `output="bin"`. |
 | `spot_spacing_um` | `100.0` | Center-to-center spacing between spots, in microns, for `output="spot"`. |
 | `spot_radius_um` | `27.5` | Capture radius of each spot, in microns, for `output="spot"`. |
@@ -318,20 +331,52 @@ reproducing the original large-scale standalone example.
 
 ## Low-level simulator
 
-`sim_app.simulate_3d_molecule_sphere_multires(...)` remains available for
-advanced workflows that need multiple modalities or axes in one call. It
-returns a dictionary containing cell, bin, and spot `AnnData` objects.
+`generate_data()` always builds exactly one modality/axis pair, so generating
+several combinations that way re-simulates the tissue sphere, cells, domains,
+and gene panel from scratch for each call. If you need multiple
+resolutions — several modalities, several slice axes, or both — from the same
+underlying tissue, call the lower-level `sim_app.simulate_3d_molecule_sphere_multires(...)`
+directly instead. It builds the shared simulation once and returns every
+requested modality/axis combination from it.
 
-The app-facing API should normally use `sim_app.generate_data(...)`, because
-it builds only the selected modality and axis.
+```python
+sim = sim_app.simulate_3d_molecule_sphere_multires(
+    sphere_R_um=300.0,
+    n_cells=1_000,
+    n_domains=4,
+    n_slices=5,
+    capture_window_um=(300.0, 300.0),
+    bin_size_um=30.0,
+    output_modalities=("bin", "spot"),
+    slice_axes=("X", "Z"),
+    seed=2025,
+)
 
-## Current scope
+bin_adata_x = sim["bin_adatas"]["X"]
+spot_adata_z = sim["spot_adatas"]["Z"]
 
-- Sphere tissue geometry only.
-- Core-plus-wedge domain layout only.
-- Static Matplotlib plotting only.
-- File output is `.h5ad` via `sim_app.save(...)` or `adata.write_h5ad(...)`.
+sim_app.save(bin_adata_x, "bin_x.h5ad")
+sim_app.save(spot_adata_z, "spot_z.h5ad")
+```
 
-Future extensions can add ellipsoid/box geometries, additional domain layouts,
-and interactive plotting without changing the high-level `generate_data()`
-contract.
+`output_modalities` and `slice_axes` each default to every supported value
+(`{"cell", "bin", "spot"}` and `("X", "Y", "Z")`) when omitted, so a bare call
+with no filters generates everything at once.
+
+`adata_cell_sectioned`, `bin_adatas`, and `spot_adatas` are each `{axis:
+AnnData}` dicts, since a separate object is built per requested slicing axis —
+that's what `sim["bin_adatas"]["X"]` above is indexing into. The dictionary
+also includes `adata_cell_true`/`adata_cell_obs` (single, pre-sectioning cell
+objects, for advanced use) and `meta` (simulation parameters and summary
+statistics).
+
+`simulate_3d_molecule_sphere_multires` accepts the same capture-window
+parameter names as `generate_data()` (`capture_window_um`,
+`capture_window_center_um`, `xenium_capture_window_um`), along with several
+lower-level, expression-model parameters not exposed through `generate_data()`
+— see the function definition in `sim_app/simulation_sphere.py` for the full
+signature.
+
+For everyday use, prefer `sim_app.generate_data(...)`: it wraps this function
+and returns exactly one `AnnData` object for the requested modality and axis,
+without building the others.

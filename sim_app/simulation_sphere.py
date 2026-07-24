@@ -1091,9 +1091,9 @@ def simulate_3d_molecule_sphere_multires(
     center=(0.0, 0.0, 0.0),
 
     # capture windows
-    xenium_capture_size_um=(12000.0, 24000.0),     # 12×24 mm (conceptual)
-    visium_capture_size_um=(6500.0, 6500.0),       # 6.5×6.5 mm
-    visium_capture_center_um=(0.0, 0.0),           # can shift to include domains
+    xenium_capture_window_um=(12000.0, 24000.0),   # 12×24 mm (conceptual)
+    capture_window_um=(6500.0, 6500.0),            # 6.5×6.5 mm
+    capture_window_center_um=(0.0, 0.0),           # can shift to include domains
 
     # domains
     n_domains=4,
@@ -1429,8 +1429,8 @@ def simulate_3d_molecule_sphere_multires(
             axis=ax,
             n_slices=n_slices,
             bin_size_um=bin_size_um,
-            window_center=visium_capture_center_um,
-            window_size=visium_capture_size_um,
+            window_center=capture_window_center_um,
+            window_size=capture_window_um,
             n_cell_types=n_cell_types,
             n_domains=n_domains,
             center=center,
@@ -1478,8 +1478,8 @@ def simulate_3d_molecule_sphere_multires(
             n_slices=n_slices,
             spot_spacing_um=spot_spacing_um,
             spot_radius_um=spot_radius_um,
-            window_center=visium_capture_center_um,
-            window_size=visium_capture_size_um,
+            window_center=capture_window_center_um,
+            window_size=capture_window_um,
             n_cell_types=n_cell_types,
             n_domains=n_domains,
             center=center,
@@ -1533,9 +1533,9 @@ def simulate_3d_molecule_sphere_multires(
             core_fuzz_flip_prob=float(core_fuzz_flip_prob),
         ),
         captures=dict(
-            xenium_capture_size_um=xenium_capture_size_um,
-            visium_capture_size_um=visium_capture_size_um,
-            visium_capture_center_um=visium_capture_center_um,
+            xenium_capture_window_um=xenium_capture_window_um,
+            capture_window_um=capture_window_um,
+            capture_window_center_um=capture_window_center_um,
         ),
         n_cells=int(n_cells),
         n_cell_types=int(n_cell_types),
@@ -1620,9 +1620,9 @@ if __name__ == "__main__":
         sphere_R_um=6000.0,
 
         # capture windows
-        xenium_capture_size_um=(12000.0, 24000.0),   # 12×24 mm
-        visium_capture_size_um=(6500.0, 6500.0),     # 6.5×6.5 mm
-        visium_capture_center_um=(0.0, 0.0),
+        xenium_capture_window_um=(12000.0, 24000.0),  # 12×24 mm
+        capture_window_um=(6500.0, 6500.0),           # 6.5×6.5 mm
+        capture_window_center_um=(0.0, 0.0),
 
         # domains: noisier boundaries
         n_domains=6,
