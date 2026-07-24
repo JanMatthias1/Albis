@@ -366,9 +366,23 @@ with no filters generates everything at once.
 `adata_cell_sectioned`, `bin_adatas`, and `spot_adatas` are each `{axis:
 AnnData}` dicts, since a separate object is built per requested slicing axis —
 that's what `sim["bin_adatas"]["X"]` above is indexing into. The dictionary
-also includes `adata_cell_true`/`adata_cell_obs` (single, pre-sectioning cell
-objects, for advanced use) and `meta` (simulation parameters and summary
-statistics).
+also includes `meta` (simulation parameters and summary statistics) and two
+single, pre-sectioning cell-level objects: `adata_cell_true` (ideal
+gene counts from the expression model) and `adata_cell_obs` (the same cells'
+counts after molecules are sampled in 3D and reassigned to nearby cells,
+which lets some counts spill into neighboring cells or go unassigned).
+Comparing the two quantifies that spillover noise:
+
+```python
+import numpy as np
+
+true_counts = np.asarray(sim["adata_cell_true"].X.sum(axis=1)).ravel()
+obs_counts = np.asarray(sim["adata_cell_obs"].X.sum(axis=1)).ravel()
+
+correlation = np.corrcoef(true_counts, obs_counts)[0, 1]
+print(f"true vs. observed per-cell total-count correlation: {correlation:.3f}")
+# true vs. observed per-cell total-count correlation: 0.999
+```
 
 `simulate_3d_molecule_sphere_multires` accepts the same capture-window
 parameter names as `generate_data()` (`capture_window_um`,
