@@ -335,9 +335,12 @@ reproducing the original large-scale standalone example.
 several combinations that way re-simulates the tissue sphere, cells, domains,
 and gene panel from scratch for each call. If you need multiple
 resolutions — several modalities, several slice axes, or both — from the same
-underlying tissue, call the lower-level `sim_app.simulate_3d_molecule_sphere_multires(...)`
-directly instead. It builds the shared simulation once and returns every
-requested modality/axis combination from it.
+underlying tissue, use the lower-level simulator API.
+
+For the usual one-shot workflow, call
+`sim_app.simulate_3d_molecule_sphere_multires(...)` directly. It builds the
+shared 3D sphere once, then slices/captures/applies batch effects for every
+requested modality/axis combination.
 
 ```python
 sim = sim_app.simulate_3d_molecule_sphere_multires(
@@ -359,6 +362,38 @@ sim_app.save(bin_adata_x, "bin_x.h5ad")
 sim_app.save(spot_adata_z, "spot_z.h5ad")
 ```
 
+If you want to keep the intact simulated sphere before slicing, capture, and
+batch effects, split the same workflow into two steps:
+
+```python
+base = sim_app.simulate_3d_molecule_sphere_base(
+    sphere_R_um=300.0,
+    n_cells=1_000,
+    n_domains=4,
+    output_modalities=("bin", "spot"),
+    seed=2025,
+)
+
+sim = sim_app.section_3d_molecule_sphere(
+    base,
+    n_slices=5,
+    capture_window_um=(300.0, 300.0),
+    bin_size_um=30.0,
+    output_modalities=("bin", "spot"),
+    slice_axes=("X", "Z"),
+)
+
+bin_adata_x = sim["bin_adatas"]["X"]
+spot_adata_z = sim["spot_adatas"]["Z"]
+```
+
+The `base` dictionary is the pre-sectioning checkpoint. It contains
+`adata_cell_true`, `adata_cell_obs`, `meta`, and a `molecules` dictionary with
+the transcript coordinates and source labels needed to generate later bin/spot
+outputs from the same sphere. To make bin or spot outputs later, generate the
+base with `output_modalities` including `"bin"` or `"spot"` so the full
+molecule stream is retained.
+
 `output_modalities` and `slice_axes` each default to every supported value
 (`{"cell", "bin", "spot"}` and `("X", "Y", "Z")`) when omitted, so a bare call
 with no filters generates everything at once.
@@ -371,13 +406,25 @@ single, pre-sectioning cell-level objects: `adata_cell_true` (ideal
 gene counts from the expression model) and `adata_cell_obs` (the same cells'
 counts after molecules are sampled in 3D and reassigned to nearby cells,
 which lets some counts spill into neighboring cells or go unassigned).
-Comparing the two quantifies that spillover noise:
+
+These two are only meaningfully different when `"cell"` is among
+`output_modalities` — otherwise `adata_cell_obs` is just a copy of
+`adata_cell_true`, since no molecule reassignment happens. Comparing the two
+quantifies that spillover noise:
 
 ```python
 import numpy as np
 
-true_counts = np.asarray(sim["adata_cell_true"].X.sum(axis=1)).ravel()
-obs_counts = np.asarray(sim["adata_cell_obs"].X.sum(axis=1)).ravel()
+cell_sim = sim_app.simulate_3d_molecule_sphere_multires(
+    sphere_R_um=300.0,
+    n_cells=2_000,
+    n_domains=4,
+    output_modalities=("cell",),
+    seed=2025,
+)
+
+true_counts = np.asarray(cell_sim["adata_cell_true"].X.sum(axis=1)).ravel()
+obs_counts = np.asarray(cell_sim["adata_cell_obs"].X.sum(axis=1)).ravel()
 
 correlation = np.corrcoef(true_counts, obs_counts)[0, 1]
 print(f"true vs. observed per-cell total-count correlation: {correlation:.3f}")

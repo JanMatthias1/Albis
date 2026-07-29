@@ -11,6 +11,8 @@ class PublicApiTest(unittest.TestCase):
         self.assertTrue(callable(sim_app.describe))
         self.assertTrue(callable(sim_app.save))
         self.assertTrue(callable(sim_app.plot))
+        self.assertTrue(callable(sim_app.simulate_3d_molecule_sphere_base))
+        self.assertTrue(callable(sim_app.section_3d_molecule_sphere))
 
     def test_generate_data_rejects_unknown_parameters(self):
         with self.assertRaisesRegex(ValueError, "Unsupported generate_data parameter"):

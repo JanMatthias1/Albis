@@ -1159,7 +1159,63 @@ def simulate_3d_molecule_sphere_multires(
     # optional output selection
     output_modalities=None,
     slice_axes=None,
+    _section=True,
 ):
+    if _section:
+        base = simulate_3d_molecule_sphere_base(
+            sphere_R_um=sphere_R_um,
+            center=center,
+            xenium_capture_window_um=xenium_capture_window_um,
+            capture_window_um=capture_window_um,
+            capture_window_center_um=capture_window_center_um,
+            n_domains=n_domains,
+            core_frac=core_frac,
+            core_bump_amp=core_bump_amp,
+            wedge_angle_amp_deg=wedge_angle_amp_deg,
+            noise_terms=noise_terms,
+            noise_freq_range=noise_freq_range,
+            boundary_fuzz_width_deg=boundary_fuzz_width_deg,
+            boundary_fuzz_flip_prob=boundary_fuzz_flip_prob,
+            core_fuzz_width_um=core_fuzz_width_um,
+            core_fuzz_flip_prob=core_fuzz_flip_prob,
+            n_cells=n_cells,
+            allow_cell_overlap=allow_cell_overlap,
+            cell_radius_kwargs=cell_radius_kwargs,
+            n_cell_types=n_cell_types,
+            domain_type_mix=domain_type_mix,
+            marker_genes_per_type=marker_genes_per_type,
+            noise_gene_frac=noise_gene_frac,
+            shared_marker_frac=shared_marker_frac,
+            base_gene_lognormal=base_gene_lognormal,
+            marker_foldchange=marker_foldchange,
+            shared_marker_foldchange=shared_marker_foldchange,
+            noise_scale=noise_scale,
+            cell_size_lognormal=cell_size_lognormal,
+            domain_size_factors=domain_size_factors,
+            theta=theta,
+            theta_jitter=theta_jitter,
+            inside_prob=inside_prob,
+            assign_k=assign_k,
+            seed=seed,
+            sparse_X=sparse_X,
+            output_modalities=output_modalities,
+        )
+        return section_3d_molecule_sphere(
+            base,
+            n_slices=n_slices,
+            batch_sigma=batch_sigma,
+            capture_window_um=capture_window_um,
+            capture_window_center_um=capture_window_center_um,
+            bin_size_um=bin_size_um,
+            spot_spacing_um=spot_spacing_um,
+            spot_radius_um=spot_radius_um,
+            max_deg=max_deg,
+            max_shift=max_shift,
+            base_seed_unaligned=base_seed_unaligned,
+            output_modalities=output_modalities,
+            slice_axes=slice_axes,
+        )
+
     rng = np.random.default_rng(seed)
 
     valid_modalities = {"cell", "bin", "spot"}
@@ -1391,6 +1447,58 @@ def simulate_3d_molecule_sphere_multires(
     adata_cell_obs.var_names = gene_names
     adata_cell_obs.obsm["spatial"] = centers.astype(np.float32)  # aligned 3D for base cell object
 
+    if not _section:
+        meta = dict(
+            units="microns",
+            sphere_R_um=float(sphere_R_um),
+            center=center,
+            n_domains=n_domains,
+            core_frac=float(core_frac),
+            domain_irregularity=dict(
+                core_bump_amp=float(core_bump_amp),
+                wedge_angle_amp_deg=float(wedge_angle_amp_deg),
+                noise_terms=int(noise_terms),
+                noise_freq_range=noise_freq_range,
+                boundary_fuzz_width_deg=float(boundary_fuzz_width_deg),
+                boundary_fuzz_flip_prob=float(boundary_fuzz_flip_prob),
+                core_fuzz_width_um=float(core_fuzz_width_um),
+                core_fuzz_flip_prob=float(core_fuzz_flip_prob),
+            ),
+            captures=dict(
+                xenium_capture_window_um=xenium_capture_window_um,
+                capture_window_um=capture_window_um,
+                capture_window_center_um=capture_window_center_um,
+            ),
+            n_cells=int(n_cells),
+            n_cell_types=int(n_cell_types),
+            domain_type_mix=domain_type_mix,
+            gene_info=gene_info,
+            inside_prob=float(inside_prob),
+            assign_k=int(assign_k),
+            seed=int(seed),
+            output_modalities=sorted(output_modalities),
+            n_molecules_generated_total=int(n_mols_generated_total),
+            n_molecules_assigned_total=(int(n_mols_assigned_total) if generate_cells else None),
+            n_molecules_unassigned_total=(int(n_mols_unassigned_total) if generate_cells else None),
+            n_molecules_total=(int(n_mols_assigned_total) if generate_cells else None),
+        )
+        adata_cell_true.uns["sim_params"] = _to_serializable(meta)
+        adata_cell_obs.uns["sim_params"] = _to_serializable(meta)
+        return dict(
+            adata_cell_true=adata_cell_true,
+            adata_cell_obs=adata_cell_obs,
+            molecules=dict(
+                assigned_xyz=mol_xyz,
+                assigned_gene=mol_gene,
+                assigned_cell=mol_assigned_cell,
+                full_xyz=mol_xyz_full,
+                full_gene=mol_gene_full,
+                full_src_celltype=mol_src_celltype_full,
+                full_src_domain=mol_src_domain_full,
+            ),
+            meta=meta,
+        )
+
     # slice ids for cells along X/Y/Z
     add_slice_ids_to_cells(adata_cell_obs, sphere_R_um=sphere_R_um, n_slices=n_slices, center=center)
     add_slice_ids_to_cells(adata_cell_true, sphere_R_um=sphere_R_um, n_slices=n_slices, center=center)
@@ -1577,6 +1685,230 @@ def simulate_3d_molecule_sphere_multires(
     )
     return out
 
+
+
+def simulate_3d_molecule_sphere_base(**kwargs):
+    """Generate the intact 3D sphere before slicing, capture, or batch effects.
+
+    The returned dictionary contains `adata_cell_true`, `adata_cell_obs`, `meta`,
+    and a `molecules` dictionary with the transcript coordinates needed for
+    later bin/spot sectioning.
+    """
+    kwargs["_section"] = False
+    return simulate_3d_molecule_sphere_multires(**kwargs)
+
+
+def section_3d_molecule_sphere(
+    base,
+    n_slices=10,
+    batch_sigma=0.15,
+    capture_window_um=None,
+    capture_window_center_um=None,
+    bin_size_um=8.0,
+    spot_spacing_um=100.0,
+    spot_radius_um=27.5,
+    max_deg=180.0,
+    max_shift=200.0,
+    base_seed_unaligned=12345,
+    output_modalities=None,
+    slice_axes=None,
+):
+    valid_modalities = {"cell", "bin", "spot"}
+    if output_modalities is None:
+        output_modalities = valid_modalities
+    elif isinstance(output_modalities, str):
+        output_modalities = {output_modalities.lower()}
+    else:
+        output_modalities = {str(modality).lower() for modality in output_modalities}
+    invalid_modalities = output_modalities - valid_modalities
+    if invalid_modalities:
+        names = ", ".join(sorted(invalid_modalities))
+        raise ValueError(f"Unsupported output modalities: {names}.")
+
+    if slice_axes is None:
+        slice_axes = ("X", "Y", "Z")
+    elif isinstance(slice_axes, str):
+        slice_axes = (slice_axes,)
+    output_axes = tuple(dict.fromkeys(str(axis).upper() for axis in slice_axes))
+    if not output_axes or any(axis not in {"X", "Y", "Z"} for axis in output_axes):
+        raise ValueError("slice_axes must contain one or more values from 'X', 'Y', 'Z'.")
+
+    generate_cells = "cell" in output_modalities
+    generate_bins = "bin" in output_modalities
+    generate_spots = "spot" in output_modalities
+
+    meta = dict(base["meta"])
+    captures = dict(meta.get("captures", {}))
+    sphere_R_um = float(meta["sphere_R_um"])
+    center = tuple(meta["center"])
+    n_domains = int(meta["n_domains"])
+    n_cell_types = int(meta["n_cell_types"])
+    seed = int(meta["seed"])
+
+    if capture_window_um is None:
+        capture_window_um = tuple(captures.get("capture_window_um", (6500.0, 6500.0)))
+    if capture_window_center_um is None:
+        capture_window_center_um = tuple(captures.get("capture_window_center_um", (0.0, 0.0)))
+
+    adata_cell_true = base["adata_cell_true"].copy()
+    adata_cell_obs = base["adata_cell_obs"].copy()
+    add_slice_ids_to_cells(adata_cell_obs, sphere_R_um=sphere_R_um, n_slices=n_slices, center=center)
+    add_slice_ids_to_cells(adata_cell_true, sphere_R_um=sphere_R_um, n_slices=n_slices, center=center)
+
+    gene_names = list(adata_cell_true.var_names)
+    var = adata_cell_true.var.copy()
+    dom_names = [f"D{d}" for d in range(n_domains)]
+    ct_names = [f"type{t+1}" for t in range(n_cell_types)]
+    molecules = base["molecules"]
+
+    cell_sectioned = {}
+    for AX in (output_axes if generate_cells else ()):
+        sec = make_cell_sectioned_with_batch(
+            adata_cell_obs,
+            axis=AX,
+            n_slices=n_slices,
+            batch_sigma=batch_sigma,
+            seed=seed + 1000 + ord(AX),
+        )
+        add_spatial_keys_for_axis(
+            sec,
+            axis_letter=AX,
+            slice_key="slice_id",
+            unaligned_key="spatial_unaligned",
+            base_seed=base_seed_unaligned + 10_000 + ord(AX),
+            max_deg=max_deg,
+            max_shift=max_shift,
+        )
+        cell_sectioned[AX] = sec
+
+    if (generate_bins or generate_spots) and molecules["full_gene"].size == 0:
+        raise ValueError(
+            "This base sphere does not include the full molecule stream needed "
+            "for bin/spot outputs. Generate it with output_modalities including "
+            "'bin' or 'spot'."
+        )
+
+    bin_adatas = {}
+    for ax in (tuple(axis.lower() for axis in output_axes) if generate_bins else ()):
+        Xb, obs_b, spatial3d_b, ct_frac_b, dom_frac_b = aggregate_molecules_to_grid_bins_2d_slices_window(
+            mol_xyz=molecules["full_xyz"],
+            mol_gene=molecules["full_gene"],
+            mol_src_celltype=molecules["full_src_celltype"],
+            mol_src_domain=molecules["full_src_domain"],
+            sphere_R_um=sphere_R_um,
+            axis=ax,
+            n_slices=n_slices,
+            bin_size_um=bin_size_um,
+            window_center=capture_window_center_um,
+            window_size=capture_window_um,
+            n_cell_types=n_cell_types,
+            n_domains=n_domains,
+            center=center,
+        )
+        adb = ad.AnnData(X=Xb, obs=obs_b, var=var)
+        adb.var_names = gene_names
+        adb.layers["counts_pre_batch"] = adb.X.copy()
+        adb.obsm["spatial"] = spatial3d_b
+        adb.obsm["cell_type_frac_true"] = ct_frac_b
+        adb.obsm["domain_frac_true"] = dom_frac_b
+        adb.obs["cell_type_true"] = np.array([ct_names[i] for i in np.argmax(ct_frac_b, axis=1)]).astype(str)
+        adb.obs["domain_true"] = np.array([dom_names[i] for i in np.argmax(dom_frac_b, axis=1)]).astype(str)
+
+        Xb_be, factors = apply_batch_effect_per_slice_sparse(
+            adb.X.tocsr(),
+            slice_ids=adb.obs["slice_id"].values,
+            n_slices=n_slices,
+            batch_sigma=batch_sigma,
+            seed=seed + 2000 + ord(ax),
+        )
+        adb.X = Xb_be
+        adb.uns["batch_effect_factors"] = _to_serializable({str(int(k)): v.tolist() for k, v in factors.items()})
+        add_spatial_keys_for_axis(
+            adb,
+            axis_letter=ax.upper(),
+            slice_key="slice_id",
+            unaligned_key="spatial_unaligned",
+            base_seed=base_seed_unaligned + 20_000 + ord(ax),
+            max_deg=max_deg,
+            max_shift=max_shift,
+        )
+        bin_adatas[ax.upper()] = adb
+
+    spot_adatas = {}
+    for ax in (tuple(axis.lower() for axis in output_axes) if generate_spots else ()):
+        Xs, obs_s, spatial3d_s, ct_frac_s, dom_frac_s = aggregate_molecules_to_spots_2d_slices_window(
+            mol_xyz=molecules["full_xyz"],
+            mol_gene=molecules["full_gene"],
+            mol_src_celltype=molecules["full_src_celltype"],
+            mol_src_domain=molecules["full_src_domain"],
+            sphere_R_um=sphere_R_um,
+            axis=ax,
+            n_slices=n_slices,
+            spot_spacing_um=spot_spacing_um,
+            spot_radius_um=spot_radius_um,
+            window_center=capture_window_center_um,
+            window_size=capture_window_um,
+            n_cell_types=n_cell_types,
+            n_domains=n_domains,
+            center=center,
+        )
+        ads = ad.AnnData(X=Xs, obs=obs_s, var=var)
+        ads.var_names = gene_names
+        ads.layers["counts_pre_batch"] = ads.X.copy()
+        ads.obsm["spatial"] = spatial3d_s
+        ads.obsm["cell_type_frac_true"] = ct_frac_s
+        ads.obsm["domain_frac_true"] = dom_frac_s
+        ads.obs["cell_type_true"] = np.array([ct_names[i] for i in np.argmax(ct_frac_s, axis=1)]).astype(str)
+        ads.obs["domain_true"] = np.array([dom_names[i] for i in np.argmax(dom_frac_s, axis=1)]).astype(str)
+
+        Xs_be, factors_s = apply_batch_effect_per_slice_sparse(
+            ads.X.tocsr(),
+            slice_ids=ads.obs["slice_id"].values,
+            n_slices=n_slices,
+            batch_sigma=batch_sigma,
+            seed=seed + 3000 + ord(ax),
+        )
+        ads.X = Xs_be
+        ads.uns["batch_effect_factors"] = _to_serializable({str(int(k)): v.tolist() for k, v in factors_s.items()})
+        add_spatial_keys_for_axis(
+            ads,
+            axis_letter=ax.upper(),
+            slice_key="slice_id",
+            unaligned_key="spatial_unaligned",
+            base_seed=base_seed_unaligned + 30_000 + ord(ax),
+            max_deg=max_deg,
+            max_shift=max_shift,
+        )
+        spot_adatas[ax.upper()] = ads
+
+    meta.update(
+        captures=dict(
+            **captures,
+            capture_window_um=capture_window_um,
+            capture_window_center_um=capture_window_center_um,
+        ),
+        n_slices=int(n_slices),
+        batch_sigma=float(batch_sigma),
+        bin_size_um=float(bin_size_um),
+        spot_spacing_um=float(spot_spacing_um),
+        spot_radius_um=float(spot_radius_um),
+        unaligned_xy=dict(
+            max_deg=float(max_deg),
+            max_shift=float(max_shift),
+            base_seed_unaligned=int(base_seed_unaligned),
+        ),
+    )
+    adata_cell_true.uns["sim_params"] = _to_serializable(meta)
+    adata_cell_obs.uns["sim_params"] = _to_serializable(meta)
+
+    return dict(
+        adata_cell_true=adata_cell_true,
+        adata_cell_obs=adata_cell_obs,
+        adata_cell_sectioned=cell_sectioned,
+        bin_adatas=bin_adatas,
+        spot_adatas=spot_adatas,
+        meta=meta,
+    )
 
 
 
