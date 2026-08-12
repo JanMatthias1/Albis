@@ -436,7 +436,15 @@ parameter names as `generate_data()` (`capture_window_um`,
 `capture_window_center_um`, `xenium_capture_window_um`), along with several
 lower-level, expression-model parameters not exposed through `generate_data()`
 — see the function definition in `sim_app/simulation_sphere.py` for the full
-signature.
+signature. Notably, this includes the NB dispersion controls:
+
+```python
+sim = sim_app.simulate_3d_molecule_sphere_multires(..., theta=25.0, theta_jitter=2.0, noise_scale=0.9)
+```
+
+- `theta` — negative-binomial dispersion (variance = mean + mean^2/theta); lower values give noisier, more overdispersed counts, higher values approach Poisson.
+- `theta_jitter` — spreads `theta` per gene via `Normal(theta, theta_jitter)`, so dispersion varies gene-to-gene instead of being fixed.
+- `noise_scale` — multiplier applied to non-marker "noise gene" expression, a separate background-noise lever.
 
 For everyday use, prefer `sim_app.generate_data(...)`: it wraps this function
 and returns exactly one `AnnData` object for the requested modality and axis,

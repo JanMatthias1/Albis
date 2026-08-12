@@ -1883,7 +1883,7 @@ def section_3d_molecule_sphere(
 
     meta.update(
         captures=dict(
-            **captures,
+            captures,
             capture_window_um=capture_window_um,
             capture_window_center_um=capture_window_center_um,
         ),
