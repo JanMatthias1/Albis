@@ -343,117 +343,16 @@ reproducing the original large-scale standalone example.
 several combinations that way re-simulates the tissue sphere, cells, domains,
 and gene panel from scratch for each call. If you need multiple
 resolutions — several modalities, several slice axes, or both — from the same
-underlying tissue, use the lower-level simulator API.
+underlying tissue, or need a parameter `generate_data()` doesn't expose (e.g.
+`theta`, `domain_size_factors`, `noise_scale`), use the lower-level simulator
+API instead: `sim_app.simulate_3d_molecule_sphere_multires(...)`,
+`simulate_3d_molecule_sphere_base(...)`, and
+`section_3d_molecule_sphere(...)`.
 
-For the usual one-shot workflow, call
-`sim_app.simulate_3d_molecule_sphere_multires(...)` directly. It builds the
-shared 3D sphere once, then slices/captures/applies batch effects for every
-requested modality/axis combination.
+See **[LOW_LEVEL_SIMULATOR.md](LOW_LEVEL_SIMULATOR.md)** for the one-shot vs.
+two-step calling patterns, worked examples, and the full parameter reference
+for this API.
 
-```python
-sim = sim_app.simulate_3d_molecule_sphere_multires(
-    sphere_R_um=300.0,
-    n_cells=1_000,
-    n_domains=4,
-    n_slices=5,
-    capture_window_um=(300.0, 300.0),
-    bin_size_um=30.0,
-    output_modalities=("bin", "spot"),
-    slice_axes=("X", "Z"),
-    seed=2025,
-)
-
-bin_adata_x = sim["bin_adatas"]["X"]
-spot_adata_z = sim["spot_adatas"]["Z"]
-
-sim_app.save(bin_adata_x, "bin_x.h5ad")
-sim_app.save(spot_adata_z, "spot_z.h5ad")
-```
-
-If you want to keep the intact simulated sphere before slicing, capture, and
-batch effects, split the same workflow into two steps:
-
-```python
-base = sim_app.simulate_3d_molecule_sphere_base(
-    sphere_R_um=300.0,
-    n_cells=1_000,
-    n_domains=4,
-    output_modalities=("bin", "spot"),
-    seed=2025,
-)
-
-sim = sim_app.section_3d_molecule_sphere(
-    base,
-    n_slices=5,
-    capture_window_um=(300.0, 300.0),
-    bin_size_um=30.0,
-    output_modalities=("bin", "spot"),
-    slice_axes=("X", "Z"),
-)
-
-bin_adata_x = sim["bin_adatas"]["X"]
-spot_adata_z = sim["spot_adatas"]["Z"]
-```
-
-The `base` dictionary is the pre-sectioning checkpoint. It contains
-`adata_cell_true`, `adata_cell_obs`, `meta`, and a `molecules` dictionary with
-the transcript coordinates and source labels needed to generate later bin/spot
-outputs from the same sphere. To make bin or spot outputs later, generate the
-base with `output_modalities` including `"bin"` or `"spot"` so the full
-molecule stream is retained.
-
-`output_modalities` and `slice_axes` each default to every supported value
-(`{"cell", "bin", "spot"}` and `("X", "Y", "Z")`) when omitted, so a bare call
-with no filters generates everything at once.
-
-`adata_cell_sectioned`, `bin_adatas`, and `spot_adatas` are each `{axis:
-AnnData}` dicts, since a separate object is built per requested slicing axis —
-that's what `sim["bin_adatas"]["X"]` above is indexing into. The dictionary
-also includes `meta` (simulation parameters and summary statistics) and two
-single, pre-sectioning cell-level objects: `adata_cell_true` (ideal
-gene counts from the expression model) and `adata_cell_obs` (the same cells'
-counts after molecules are sampled in 3D and reassigned to nearby cells,
-which lets some counts spill into neighboring cells or go unassigned).
-
-These two are only meaningfully different when `"cell"` is among
-`output_modalities` — otherwise `adata_cell_obs` is just a copy of
-`adata_cell_true`, since no molecule reassignment happens. Comparing the two
-quantifies that spillover noise:
-
-```python
-import numpy as np
-
-cell_sim = sim_app.simulate_3d_molecule_sphere_multires(
-    sphere_R_um=300.0,
-    n_cells=2_000,
-    n_domains=4,
-    output_modalities=("cell",),
-    seed=2025,
-)
-
-true_counts = np.asarray(cell_sim["adata_cell_true"].X.sum(axis=1)).ravel()
-obs_counts = np.asarray(cell_sim["adata_cell_obs"].X.sum(axis=1)).ravel()
-
-correlation = np.corrcoef(true_counts, obs_counts)[0, 1]
-print(f"true vs. observed per-cell total-count correlation: {correlation:.3f}")
-# true vs. observed per-cell total-count correlation: 0.999
-```
-
-`simulate_3d_molecule_sphere_multires` accepts the same capture-window
-parameter names as `generate_data()` (`capture_window_um`,
-`capture_window_center_um`, `xenium_capture_window_um`), along with several
-lower-level, expression-model parameters not exposed through `generate_data()`
-— see the function definition in `sim_app/simulation_sphere.py` for the full
-signature. Notably, this includes the NB dispersion controls:
-
-```python
-sim = sim_app.simulate_3d_molecule_sphere_multires(..., theta=25.0, theta_jitter=2.0, noise_scale=0.9)
-```
-
-- `theta` — negative-binomial dispersion (variance = mean + mean^2/theta); lower values give noisier, more overdispersed counts, higher values approach Poisson.
-- `theta_jitter` — spreads `theta` per gene via `Normal(theta, theta_jitter)`, so dispersion varies gene-to-gene instead of being fixed.
-- `noise_scale` — multiplier applied to non-marker "noise gene" expression, a separate background-noise lever.
-
-For everyday use, prefer `sim_app.generate_data(...)`: it wraps this function
-and returns exactly one `AnnData` object for the requested modality and axis,
+For everyday use, prefer `sim_app.generate_data(...)`: it wraps this API and
+returns exactly one `AnnData` object for the requested modality and axis,
 without building the others.
