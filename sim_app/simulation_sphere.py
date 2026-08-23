@@ -40,6 +40,7 @@ Notes:
 """
 
 import os
+import warnings
 import numpy as np
 from scipy.sparse import csr_matrix
 from scipy.spatial import cKDTree
@@ -1251,6 +1252,16 @@ def simulate_3d_molecule_sphere_multires(
             [0.25, 0.25, 0.25, 0.25],
         ], dtype=float)
         if (n_domains, n_cell_types) != dm.shape:
+            warnings.warn(
+                f"domain_type_mix was not provided and (n_domains={n_domains}, "
+                f"n_cell_types={n_cell_types}) does not match the built-in "
+                f"{dm.shape} example composition, so every domain will be assigned "
+                "the exact same uniform cell-type distribution (no domain-specific "
+                "enrichment at all). Pass an explicit domain_type_mix of shape "
+                f"({n_domains}, {n_cell_types}) if domains should differ in "
+                "cell-type composition.",
+                stacklevel=2,
+            )
             dm = np.tile(1.0 / n_cell_types, (n_domains, n_cell_types))
         domain_type_mix = dm
     else:
