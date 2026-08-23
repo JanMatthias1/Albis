@@ -206,12 +206,20 @@ locations.
 | Parameter | Default | Meaning |
 | --- | ---: | --- |
 | `n_cell_types` | `4` | Number of cell types. |
-| `domain_type_mix` | `None` | Optional `(n_domains, n_cell_types)` composition matrix specifying which cell types occur in each domain, and in what proportions. Each row is renormalized to a probability distribution and used to draw the cell type of every cell assigned to that domain. Defaults to a small built-in 4x4 example composition, or a uniform mix when `n_domains`/`n_cell_types` differ from 4/4. |
+| `domain_type_mix` | `None` | Optional `(n_domains, n_cell_types)` composition matrix specifying which cell types occur in each domain, and in what proportions. Each row is renormalized to a probability distribution and used to draw the cell type of every cell assigned to that domain. Defaults to a small built-in 4x4 example composition **only when `n_domains=4` and `n_cell_types=4` exactly**; for any other `n_domains`/`n_cell_types`, it silently falls back to a **fully uniform** mix instead. |
 | `marker_genes_per_type` | `80` | Number of marker genes assigned to each cell type. |
 | `noise_gene_frac` | `0.10` | Fraction of the gene panel carrying no cell-type signal. |
 | `shared_marker_frac` | `0.25` | Fraction of each cell type's markers shared with other cell types, rather than unique to it. |
 | `inside_prob` | `0.95` | Target fraction of a cell's transcripts generated within its cell radius. |
 | `assign_k` | `8` | Number of nearest cells considered when reassigning transcripts to cells by containment, for `output="cell"`. |
+
+> **If you change `n_domains` or `n_cell_types` away from the 4/4 default, you must
+> supply your own `domain_type_mix`.** The uniform fallback isn't a mild or
+> approximate composition — every domain gets the exact same flat distribution
+> over cell types (e.g. all `1/8` for 8 types), so domains carry no
+> cell-type signal at all. Any benchmark relying on domain-specific
+> composition (e.g. "does this method preserve local cell-type mixture?")
+> will be silently meaningless without an explicit `domain_type_mix`.
 
 #### 6. Slicing, capture, and batch effects
 
