@@ -58,10 +58,15 @@ notebook, and tutorial material lives in the separate `sim_paper` repository.
 
 ## Tutorial
 
-A package-focused app tutorial is available at
-[`tutorial/sim_app_tutorial.ipynb`](tutorial/sim_app_tutorial.ipynb). It shows
-how to generate a small dataset, inspect the returned `AnnData`, plot aligned
-and unaligned coordinates, and save the result.
+Two package-focused tutorials are available:
+
+- [`tutorial/higher_level_api_tutorial.ipynb`](tutorial/higher_level_api_tutorial.ipynb) —
+  the app-facing `generate_data()` workflow: generate a small dataset,
+  inspect the returned `AnnData`, plot aligned and unaligned coordinates, and
+  save the result.
+- [`tutorial/lower_level_api_tutorial.ipynb`](tutorial/lower_level_api_tutorial.ipynb) —
+  the low-level simulator API, with every parameter exposed as one plain
+  dictionary (see [Low-level simulator](#low-level-simulator) below).
 
 To run it from this environment:
 

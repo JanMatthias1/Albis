@@ -2,11 +2,18 @@
 
 This folder contains a package-focused tutorial for `sim-app`.
 
-- `sim_app_tutorial.ipynb` shows the intended app workflow: generate one
-  dataset, inspect the returned `AnnData`, plot coordinates, and save the
-  result as `.h5ad`.
-- The tutorial is intentionally small and uses reduced simulation settings so
-  it can run interactively during development.
+- `higher_level_api_tutorial.ipynb` shows the app-facing `generate_data()`
+  workflow: generate one dataset, inspect the returned `AnnData`, plot
+  coordinates, and save the result as `.h5ad`.
+- `lower_level_api_tutorial.ipynb` shows the low-level simulator API
+  (`simulate_3d_molecule_sphere_multires`/`_base`/`section_3d_molecule_sphere`),
+  which exposes every simulation parameter as one plain dictionary you can
+  pass with `**config` — including several expression-model parameters
+  `generate_data()` doesn't expose at all. See
+  [`../LOW_LEVEL_SIMULATOR.md`](../LOW_LEVEL_SIMULATOR.md) for the full
+  written reference this notebook walks through.
+- Both notebooks are intentionally small and use reduced simulation settings
+  so they can run interactively during development.
 
 Create the tutorial environment from the repository root:
 
