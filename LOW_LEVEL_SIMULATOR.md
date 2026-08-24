@@ -149,8 +149,8 @@ several differ from `generate_data()`'s smaller tutorial-scale defaults
 | `noise_scale` | 1 | `0.9` | Multiplier `m_{t,g}` applied to non-marker "noise gene" expression, a separate background-noise lever. Not exposed via `generate_data()`. |
 | `cell_size_lognormal` | 1 | `(0.0, 0.35)` | `(mu, sigma)` of the log-normal distribution each cell's size factor `s_i` is drawn from. Not exposed via `generate_data()`. |
 | `domain_size_factors` | 1 | `None` | Optional length-`n_domains` array of per-domain expression scale factors (`delta_{d_i}` in the count model). `None` means all domains get a factor of `1.0` — i.e. **no domain-level expression shift is applied**; every domain-driven signal comes from `domain_type_mix` instead. Not exposed via `generate_data()`. Passing e.g. `[1.0, 1.0, 1.0, 1.0, 1.0, 1.3]` would make domain 5 run 30% higher overall expression regardless of cell type. |
-| `theta` | 1 | `25.0` | Center of the per-gene negative-binomial dispersion `theta_g` (`Var = mean + mean^2/theta`); lower values give noisier, more overdispersed counts, higher values approach Poisson. Not exposed via `generate_data()`. |
-| `theta_jitter` | 1 | `2.0` | Spreads `theta` per gene via `Normal(theta, theta_jitter)`, so dispersion varies gene-to-gene instead of being fixed. Not exposed via `generate_data()`. |
+| `theta` | 1 | `25.0` | Center of the per-gene negative-binomial dispersion: `theta_g ~ N(theta, theta_jitter)`, used as `theta_g` in `C_{i,g} ~ NB(mu_{i,g}, theta_g)`, `Var(C_{i,g}) = mu_{i,g} + mu_{i,g}^2 / theta_g`. Lower `theta` gives noisier, more overdispersed counts; higher values approach Poisson. Not exposed via `generate_data()`. |
+| `theta_jitter` | 1 | `2.0` | Spread of `theta_g ~ N(theta, theta_jitter)` — the standard deviation of that per-gene draw, so dispersion varies gene-to-gene instead of being fixed at exactly `theta`. Not exposed via `generate_data()`. |
 
 ### Transcript-level molecule simulation
 
