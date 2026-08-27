@@ -1,4 +1,4 @@
-"""Public API for the sim_app simulation package."""
+"""Public API for Albis - A muLti-resolution Biological In-silico Simulator."""
 
 from .api import DEFAULT_PARAMETERS, describe, example_data, generate_data, save
 from .plotting import plot

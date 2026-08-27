@@ -3,12 +3,14 @@ requires = ["setuptools>=64", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "sim-app"
+name = "albis"
 version = "0.1.0"
-description = "3D transcript-level spatial transcriptomics simulation utilities."
+description = "Albis - A muLti-resolution Biological In-silico Simulator for 3D spatial transcriptomics."
 readme = "README.md"
 requires-python = ">=3.10"
-keywords = ["spatial-transcriptomics", "simulation", "anndata"]
+license = "MIT"
+license-files = ["LICENSE"]
+keywords = ["spatial-transcriptomics", "simulation", "anndata", "multi-resolution"]
 classifiers = [
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
@@ -36,11 +38,11 @@ dev = [
 ]
 
 [project.urls]
-Repository = "https://github.com/janmatthias/sim_app"
+Repository = "https://github.com/janmatthias/albis"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["sim_app*"]
+include = ["albis*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

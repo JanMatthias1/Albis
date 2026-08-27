@@ -2,16 +2,16 @@
 set -euo pipefail
 
 # =============================================================================
-# create_sim_app_env.sh
+# create_tutorial_env.sh
 #
-# Creates a conda environment for the sim_app tutorial, installs sim_app
+# Creates a conda environment for the albis tutorial, installs albis
 # with [tutorial,plot] extras, and registers a Jupyter kernel.
 #
 # Usage:
-#   bash create_sim_app_env.sh
+#   bash create_tutorial_env.sh
 #
 # Override defaults with env vars:
-#   CONDA_ENV_NAME=my-env PYTHON_VERSION=3.11 bash create_sim_app_env.sh
+#   CONDA_ENV_NAME=my-env PYTHON_VERSION=3.11 bash create_tutorial_env.sh
 # =============================================================================
 
 if [[ -n "${SLURM_SUBMIT_DIR:-}" ]]; then
@@ -47,7 +47,7 @@ conda activate "${ENV_PREFIX}"
 echo "[setup] Upgrading pip/setuptools/wheel"
 python -m pip install --upgrade pip setuptools wheel
 
-echo "[setup] Installing sim_app with tutorial + plot extras"
+echo "[setup] Installing albis with tutorial + plot extras"
 python -m pip install -e "${REPO_ROOT}[tutorial,plot]"
 
 echo "[setup] Ensuring jupyter notebook + ipykernel are present"
@@ -64,11 +64,11 @@ python -m ipykernel install \
 
 echo "[setup] Verifying imports"
 python -c "
-import sim_app
+import albis
 import notebook
 import ipykernel
 import jupyter_server
-print(f'sim_app {sim_app.__version__} OK')
+print(f'albis {albis.__version__} OK')
 print('notebook OK')
 print('ipykernel OK')
 print(f'jupyter_server {jupyter_server.__version__} OK')

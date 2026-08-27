@@ -1,9 +1,9 @@
 # Low-level simulator reference
 
-`sim_app.generate_data(...)` (documented in the main [README](README.md)) is a
+`ab.generate_data(...)` (documented in the main [README](README.md)) is a
 curated, tutorial-scale entry point: it always builds exactly one
 modality/axis pair, and only exposes the parameters listed in its
-`DEFAULT_PARAMETERS` dict (`sim_app/api.py`) — anything not in that dict
+`DEFAULT_PARAMETERS` dict (`albis/api.py`) — anything not in that dict
 raises `ValueError: Unsupported generate_data parameter(s)` if you try to
 pass it.
 
@@ -27,7 +27,7 @@ tissue, use one of the two calling patterns below instead.
 batch effects for every requested modality/axis combination, all in one call:
 
 ```python
-sim = sim_app.simulate_3d_molecule_sphere_multires(
+sim = ab.simulate_3d_molecule_sphere_multires(
     sphere_R_um=300.0,
     n_cells=1_000,
     n_domains=4,
@@ -49,7 +49,7 @@ multiple sectioning configurations without regenerating cells and genes each
 time:
 
 ```python
-base = sim_app.simulate_3d_molecule_sphere_base(
+base = ab.simulate_3d_molecule_sphere_base(
     sphere_R_um=300.0,
     n_cells=1_000,
     n_domains=4,
@@ -57,7 +57,7 @@ base = sim_app.simulate_3d_molecule_sphere_base(
     seed=2025,
 )
 
-sim = sim_app.section_3d_molecule_sphere(
+sim = ab.section_3d_molecule_sphere(
     base,
     n_slices=5,
     capture_window_um=(300.0, 300.0),

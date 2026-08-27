@@ -1,7 +1,7 @@
-# sim-app
+# Albis
 
-`sim-app` is a  Python package for generating synthetic 3D
-spatial-transcriptomics data as app-ready
+**Albis** - A muLti-resolution Biological In-silico Simulator - is a Python
+package for generating synthetic 3D spatial-transcriptomics data as analysis-ready
 [`AnnData`](https://anndata.readthedocs.io/) objects.
 It is structured as an installable package with a small tutorial workflow.
 
@@ -10,10 +10,10 @@ gene-expression counts, expands those counts into individual transcript
 locations, and aggregates transcripts to cell, bin, or spot observations.
 
 ```text
-sim_app/
+albis/  (repository directory is still named sim_app/ on this system)
 ├── pyproject.toml
 ├── README.md
-├── sim_app/
+├── albis/
 │   ├── api.py
 │   ├── plotting.py
 │   └── simulation_sphere.py
@@ -22,12 +22,12 @@ sim_app/
 ```
 
 ```python
-import sim_app
+import albis as ab
 
-adata = sim_app.generate_data(...)
-summary = sim_app.describe(adata)
-figure = sim_app.plot(adata, ...)
-path = sim_app.save(adata, "simulation.h5ad")
+adata = ab.generate_data(...)
+summary = ab.describe(adata)
+figure = ab.plot(adata, ...)
+path = ab.save(adata, "simulation.h5ad")
 ```
 
 ## Installation
@@ -44,7 +44,7 @@ Install optional static plotting support as well:
 python -m pip install -e ".[plot]"
 ```
 
-The PyPI package name is `sim-app`; the Python import name is `sim_app`.
+The PyPI package name and the Python import name are both `albis` (`pip install albis`, `import albis as ab`).
 
 ## Development
 
@@ -79,9 +79,9 @@ jupyter-notebook --no-browser --ip=0.0.0.0 --port 8888
 ## Quick start
 
 ```python
-import sim_app
+import albis as ab
 
-adata = sim_app.generate_data(
+adata = ab.generate_data(
     output="bin",
     slice_axis="Z",
     n_cells=1_000,
@@ -90,29 +90,29 @@ adata = sim_app.generate_data(
     seed=2025,
 )
 
-summary = sim_app.describe(adata)
+summary = ab.describe(adata)
 
-figure = sim_app.plot(
+figure = ab.plot(
     adata,
     view="2d",
     coordinates="aligned",
     color="domain_true",
 )
 
-sim_app.save(adata, "simulation_bins_z.h5ad")
+ab.save(adata, "simulation_bins_z.h5ad")
 ```
 
 ## `generate_data`
 
 ```python
-adata = sim_app.generate_data(output="bin", slice_axis="Z")
+adata = ab.generate_data(output="bin", slice_axis="Z")
 ```
 
 Parameters are usually passed as keyword arguments. They can also be omitted to
-use `sim_app.DEFAULT_PARAMETERS`:
+use `ab.DEFAULT_PARAMETERS`:
 
 ```python
-adata = sim_app.generate_data(output="spot", slice_axis="X", n_cells=2_000)
+adata = ab.generate_data(output="spot", slice_axis="X", n_cells=2_000)
 ```
 
 If you build a configuration programmatically, passing a dictionary is still
@@ -120,7 +120,7 @@ supported:
 
 ```python
 params = {"output": "spot", "slice_axis": "X", "n_cells": 2_000}
-adata = sim_app.generate_data(params)
+adata = ab.generate_data(params)
 ```
 
 The function returns exactly **one** `AnnData` object. It does not generate
@@ -130,14 +130,14 @@ cell-section outputs, spots, and X/Y bin outputs.
 For a small tutorial or smoke-test dataset, use:
 
 ```python
-adata = sim_app.example_data()
+adata = ab.example_data()
 ```
 
 `example_data()` calls `generate_data()` with smaller defaults. Keyword
 arguments can override those defaults:
 
 ```python
-adata = sim_app.example_data(output="spot", slice_axis="Y", n_cells=500)
+adata = ab.example_data(output="spot", slice_axis="Y", n_cells=500)
 ```
 
 ### Parameters
@@ -248,7 +248,7 @@ locations.
 | `seed` | `2025` | Random seed governing cell placement, gene expression, and batch effects. |
 | `base_seed_unaligned` | `12345` | Random seed governing the per-slice rotation and translation used to generate unaligned coordinates. |
 
-Use `sim_app.DEFAULT_PARAMETERS` to inspect the complete supported parameter
+Use `ab.DEFAULT_PARAMETERS` to inspect the complete supported parameter
 set. Unsupported values fail early with a descriptive error.
 
 ## AnnData contract
@@ -290,7 +290,7 @@ and direct cell/domain truth labels from the returned object.
 ## Describe and Save
 
 ```python
-summary = sim_app.describe(adata)
+summary = ab.describe(adata)
 ```
 
 `describe()` returns a plain dictionary with the most important contents of the
@@ -298,7 +298,7 @@ object: observation and gene counts, total counts, output platform, slice axis,
 available coordinate keys, layers, metadata keys, and truth annotations.
 
 ```python
-path = sim_app.save(adata, "simulation_bins_z.h5ad")
+path = ab.save(adata, "simulation_bins_z.h5ad")
 ```
 
 `save()` writes the object with AnnData's `.h5ad` format and returns the path.
@@ -308,16 +308,16 @@ It is a convenience wrapper around `adata.write_h5ad(...)`.
 
 ```python
 # Aligned 2D tissue view, colored by an observation annotation
-sim_app.plot(adata, view="2d", coordinates="aligned", color="domain_true")
+ab.plot(adata, view="2d", coordinates="aligned", color="domain_true")
 
 # Unaligned 3D view, colored by slice
-sim_app.plot(adata, view="3d", coordinates="unaligned", color="slice_id")
+ab.plot(adata, view="3d", coordinates="unaligned", color="slice_id")
 
 # Expression of one gene in a single slice
-sim_app.plot(adata, view="2d", color="G1", slice_id=0, point_size=8)
+ab.plot(adata, view="2d", color="G1", slice_id=0, point_size=8)
 ```
 
-`sim_app.plot()` returns a Matplotlib `Figure`. It supports:
+`ab.plot()` returns a Matplotlib `Figure`. It supports:
 
 - `view="2d"` or `view="3d"`
 - `coordinates="aligned"` or `coordinates="unaligned"`
@@ -350,7 +350,7 @@ and gene panel from scratch for each call. If you need multiple
 resolutions — several modalities, several slice axes, or both — from the same
 underlying tissue, or need a parameter `generate_data()` doesn't expose (e.g.
 `theta`, `domain_size_factors`, `noise_scale`), use the lower-level simulator
-API instead: `sim_app.simulate_3d_molecule_sphere_multires(...)`,
+API instead: `ab.simulate_3d_molecule_sphere_multires(...)`,
 `simulate_3d_molecule_sphere_base(...)`, and
 `section_3d_molecule_sphere(...)`.
 
@@ -358,6 +358,6 @@ See **[LOW_LEVEL_SIMULATOR.md](LOW_LEVEL_SIMULATOR.md)** for the one-shot vs.
 two-step calling patterns, worked examples, and the full parameter reference
 for this API.
 
-For everyday use, prefer `sim_app.generate_data(...)`: it wraps this API and
+For everyday use, prefer `ab.generate_data(...)`: it wraps this API and
 returns exactly one `AnnData` object for the requested modality and axis,
 without building the others.

@@ -62,7 +62,7 @@ def plot(
     Parameters
     ----------
     adata
-        An AnnData object returned by :func:`sim_app.generate_data`.
+        An AnnData object returned by :func:`albis.generate_data`.
     view
         ``"2d"`` uses slice-plane coordinates; ``"3d"`` uses tissue
         coordinates.
