@@ -72,7 +72,7 @@ To run it from this environment:
 
 ```bash
 bash env/create_tutorial_env.sh
-conda activate sim-app-tutorial
+conda activate albis-tutorial
 jupyter-notebook --no-browser --ip=0.0.0.0 --port 8888
 ```
 
