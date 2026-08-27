@@ -10,7 +10,7 @@ gene-expression counts, expands those counts into individual transcript
 locations, and aggregates transcripts to cell, bin, or spot observations.
 
 ```text
-albis/  (repository directory is still named sim_app/ on this system)
+albis/
 ├── pyproject.toml
 ├── README.md
 ├── albis/
