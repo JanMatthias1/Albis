@@ -68,12 +68,19 @@ Two package-focused tutorials are available:
   the low-level simulator API, with every parameter exposed as one plain
   dictionary (see [Low-level simulator](#low-level-simulator) below).
 
-To run it from this environment:
+To run the tutorial notebooks, install with the tutorial extras:
 
 ```bash
-bash env/create_tutorial_env.sh
-conda activate albis-tutorial
+pip install -e ".[tutorial,plot]"     # from a clone; or: pip install "albis[tutorial,plot]"
 jupyter-notebook --no-browser --ip=0.0.0.0 --port 8888
+```
+
+On a conda-based cluster, `env/create_tutorial_env.sh` does the same in a
+dedicated prefix env and registers a Jupyter kernel:
+
+```bash
+bash env/create_tutorial_env.sh          # builds env/albis-tutorial/
+conda activate env/albis-tutorial
 ```
 
 ## Quick start
@@ -231,7 +238,7 @@ locations.
 | Parameter | Default | Meaning |
 | --- | ---: | --- |
 | `n_slices` | `5` | Number of slices generated along the selected axis. |
-| `capture_window_um` | `(500, 500)` | Width and height, in microns, of the rectangular capture window applied to each 2D slice before binning or spot aggregation. Applies only to `output="bin"` or `"spot"`. |
+| `capture_window_um` | `"platform"` | Capture area cropped from each 2D slice. `"platform"` uses the real slide area for the chosen `output`: 6.5 × 6.5 mm for `"bin"`/`"spot"` (Visium / Visium HD) and `xenium_capture_window_um` (12 × 24 mm) for `"cell"` (Xenium). Pass `False` to disable the crop (bin/spot grids then span the molecule bounding box, with no empty border), or a `(width, height)` pair in microns to apply a custom window to any modality. **When the tissue is smaller than the window, `"bin"`/`"spot"` output contains all-zero observations around the tissue — drop them with a per-observation minimum-count QC filter.** |
 | `bin_size_um` | `20.0` | Bin width, in microns, for `output="bin"`. |
 | `spot_spacing_um` | `100.0` | Center-to-center spacing between spots, in microns, for `output="spot"`. |
 | `spot_radius_um` | `27.5` | Capture radius of each spot, in microns, for `output="spot"`. |

@@ -8,6 +8,11 @@ version = "0.1.0"
 description = "Albis - A muLti-resolution Biological In-silico Simulator for 3D spatial transcriptomics."
 readme = "README.md"
 requires-python = ">=3.10"
+authors = [
+    { name = "Jan Matthias" },
+    { name = "Jianing Yao" },
+    { name = "Stephanie Hicks" },
+]
 license = "MIT"
 license-files = ["LICENSE"]
 keywords = ["spatial-transcriptomics", "simulation", "anndata", "multi-resolution"]
@@ -38,7 +43,9 @@ dev = [
 ]
 
 [project.urls]
-Repository = "https://github.com/janmatthias/albis"
+Homepage = "https://github.com/JanMatthias1/Albis"
+Repository = "https://github.com/JanMatthias1/Albis"
+Issues = "https://github.com/JanMatthias1/Albis/issues"
 
 [tool.setuptools.packages.find]
 where = ["."]

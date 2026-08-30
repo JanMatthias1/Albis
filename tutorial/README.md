@@ -1,6 +1,6 @@
-# sim-app tutorial
+# albis tutorial
 
-This folder contains a package-focused tutorial for `sim-app`.
+This folder contains a package-focused tutorial for `albis`.
 
 - `higher_level_api_tutorial.ipynb` shows the app-facing `generate_data()`
   workflow: generate one dataset, inspect the returned `AnnData`, plot
@@ -15,33 +15,18 @@ This folder contains a package-focused tutorial for `sim-app`.
 - Both notebooks are intentionally small and use reduced simulation settings
   so they can run interactively during development.
 
-Create the tutorial environment from the repository root:
+Install `albis` with the notebook + plotting extras (from a clone of this
+repo, or from PyPI):
 
 ```bash
-bash env/create_tutorial_env.sh
+pip install -e ".[tutorial,plot]"      # from a clone
+# or: pip install "albis[tutorial,plot]"
 ```
 
-On a SLURM cluster, submit the same setup script as a job:
+Then launch Jupyter:
 
 ```bash
-sbatch env/create_tutorial_env.sh
-```
-
-The script creates a conda environment, installs `sim-app` with notebook and
-plotting dependencies, verifies the tutorial notebook can be loaded, and
-registers a Jupyter kernel named `sim-app-tutorial`.
-
-The default conda environment name is `sim-app-tutorial`. Override it with
-`SIM_APP_CONDA_ENV` if needed:
-
-```bash
-SIM_APP_CONDA_ENV=my-env bash env/create_tutorial_env.sh
-```
-
-After the environment is ready, launch Jupyter from the cluster like this:
-
-```bash
-conda activate sim-app-tutorial
+conda activate albis
 jupyter-notebook --no-browser --ip=0.0.0.0 --port 8888
 ```
 

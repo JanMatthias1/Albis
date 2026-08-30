@@ -31,7 +31,7 @@ DEFAULT_PARAMETERS = {
     "cell_radius_kwargs": None,
     "domain_type_mix": None,
     "xenium_capture_window_um": (12_000.0, 24_000.0),
-    "capture_window_um": (500.0, 500.0),
+    "capture_window_um": "platform",
     "capture_window_center_um": (0.0, 0.0),
     "bin_size_um": 20.0,
     "spot_spacing_um": 100.0,
@@ -102,13 +102,27 @@ def _validate_parameters(config):
         if not 0 <= float(config[key]) <= 1:
             raise ValueError(f"{key} must be between 0 and 1.")
 
-    for key in ("xenium_capture_window_um", "capture_window_um", "capture_window_center_um", "noise_freq_range"):
+    for key in ("xenium_capture_window_um", "capture_window_center_um", "noise_freq_range"):
         value = config[key]
         if len(value) != 2:
             raise ValueError(f"{key} must contain exactly two values.")
-    for key in ("xenium_capture_window_um", "capture_window_um", "noise_freq_range"):
+    for key in ("xenium_capture_window_um", "noise_freq_range"):
         if any(float(value) <= 0 for value in config[key]):
             raise ValueError(f"{key} values must be positive.")
+
+    # capture_window_um: "platform" (per-modality real window), False (no crop),
+    # or an explicit (width, height) pair applied to every modality.
+    cw = config["capture_window_um"]
+    if cw is None or (isinstance(cw, str) and cw.lower() == "platform"):
+        config["capture_window_um"] = "platform"
+    elif cw is False:
+        config["capture_window_um"] = False
+    elif isinstance(cw, str) or not hasattr(cw, "__len__") or len(cw) != 2 or any(float(v) <= 0 for v in cw):
+        raise ValueError(
+            "capture_window_um must be 'platform', False, or a (width, height) pair of positive numbers."
+        )
+    else:
+        config["capture_window_um"] = (float(cw[0]), float(cw[1]))
 
 
 def _remove_truth_annotations(adata):
@@ -146,13 +160,40 @@ def generate_data(parameters=None, /, **overrides):
     The returned object always contains ``obsm["spatial_3d"]`` and aligned
     2D ``obsm["spatial"]`` coordinates. It includes
     ``obsm["spatial_unaligned"]`` unless ``unaligned_coordinates`` is false.
+
+    ``capture_window_um`` controls the capture area cropped from each slice:
+
+    * ``"platform"`` (default) -- the real slide area for the chosen ``output``:
+      6.5 x 6.5 mm for ``"bin"``/``"spot"`` (Visium / Visium HD),
+      ``xenium_capture_window_um`` (12 x 24 mm) for ``"cell"`` (Xenium).
+    * ``False`` -- no crop; bin/spot grids span the molecule bounding box, with
+      no empty border.
+    * a ``(width, height)`` pair -- that window, applied to any modality.
+
+    When the tissue is smaller than the capture window, ``"bin"``/``"spot"``
+    outputs include all-zero observations around the tissue. That is expected --
+    drop them with a per-observation minimum-count QC filter.
     """
     config = _resolve_parameters(parameters, overrides)
     _validate_parameters(config)
 
+    # Resolve the capture window per output modality. "platform" -> the real
+    # slide area (Visium/VisiumHD 6.5 mm for bin/spot, Xenium 12x24 mm for
+    # cell); False -> no crop; an explicit pair -> that window for any modality.
+    cw = config["capture_window_um"]
+    if cw is False:
+        bin_spot_window = False
+        cell_window = False
+    elif cw == "platform":
+        bin_spot_window = (6500.0, 6500.0)
+        cell_window = tuple(config["xenium_capture_window_um"])
+    else:
+        bin_spot_window = tuple(cw)
+        cell_window = tuple(cw)
+
     simulation = simulate_3d_molecule_sphere_multires(
         sphere_R_um=float(config["sphere_radius_um"]),
-        xenium_capture_window_um=tuple(config["xenium_capture_window_um"]),
+        xenium_capture_window_um=cell_window,
         n_domains=int(config["n_domains"]),
         core_frac=float(config["core_frac"]),
         core_bump_amp=float(config["core_bump_amp"]),
@@ -175,7 +216,7 @@ def generate_data(parameters=None, /, **overrides):
         assign_k=int(config["assign_k"]),
         n_slices=int(config["n_slices"]),
         batch_sigma=float(config["batch_sigma"]),
-        capture_window_um=tuple(config["capture_window_um"]),
+        capture_window_um=bin_spot_window,
         capture_window_center_um=tuple(config["capture_window_center_um"]),
         bin_size_um=float(config["bin_size_um"]),
         spot_spacing_um=float(config["spot_spacing_um"]),

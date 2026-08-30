@@ -29,8 +29,8 @@ Notes:
 
 (2) Different platform capture windows (same tissue sphere):
     - Tissue sphere diameter defaults to 12 mm => sphere_R_um = 6000 µm.
-    - Xenium-like capture window default: 12×24 mm (used conceptually for cell-level)
-    - Visium/VisiumHD capture window default: 6.5×6.5 mm (cropping for bins/spots)
+    - Xenium-like capture window default: 12×24 mm (crops cell-level output)
+    - Visium/VisiumHD capture window default: 6.5×6.5 mm (crops bins/spots)
     - Spots: radius 27.5 µm (55 µm diam) + spacing 100 µm (unchanged).
 
 (3) Coordinate storage:
@@ -804,7 +804,13 @@ def aggregate_molecules_to_grid_bins_2d_slices_window(
     center=(0.0, 0.0, 0.0),
 ):
     """
-    2D bins per slice, but only within a rectangular capture window (VisiumHD-like).
+    2D bins per slice, within a rectangular capture window (VisiumHD-like).
+
+    ``window_size=None`` disables the capture crop: the bin grid then spans
+    exactly the molecule bounding box in the slice plane, so no molecule is
+    dropped and there is no empty border around the tissue. (Empty bins
+    *inside* the tissue footprint, from gaps between sparsely packed cells,
+    are unaffected -- that is not a cropping effect.)
     """
     mol_xyz = np.asarray(mol_xyz)
     mol_gene = np.asarray(mol_gene, dtype=np.int32)
@@ -829,19 +835,30 @@ def aggregate_molecules_to_grid_bins_2d_slices_window(
     mol_src_domain = mol_src_domain[keep]
     sid = sid[keep]
 
-    # apply plane capture window crop
-    min0, max0, min1, max1 = _capture_window_from_center(window_center, window_size)
+    # apply plane capture window crop; window_size=None -> span the molecule
+    # bounding box instead (no crop, no empty border)
     p0 = mol_xyz[:, pd[0]]
     p1 = mol_xyz[:, pd[1]]
-    inwin = (p0 >= min0) & (p0 <= max0) & (p1 >= min1) & (p1 <= max1)
-
-    mol_xyz = mol_xyz[inwin]
-    mol_gene = mol_gene[inwin]
-    mol_src_celltype = mol_src_celltype[inwin]
-    mol_src_domain = mol_src_domain[inwin]
-    sid = sid[inwin]
-    p0 = p0[inwin]
-    p1 = p1[inwin]
+    if window_size is None:
+        if p0.size:
+            min0, max0 = float(p0.min()), float(p0.max()) + 1e-6
+            min1, max1 = float(p1.min()), float(p1.max()) + 1e-6
+        else:
+            min0 = max0 = min1 = max1 = 0.0
+        eff_center = ((min0 + max0) / 2.0, (min1 + max1) / 2.0)
+        eff_size = (max0 - min0, max1 - min1)
+    else:
+        min0, max0, min1, max1 = _capture_window_from_center(window_center, window_size)
+        inwin = (p0 >= min0) & (p0 <= max0) & (p1 >= min1) & (p1 <= max1)
+        mol_xyz = mol_xyz[inwin]
+        mol_gene = mol_gene[inwin]
+        mol_src_celltype = mol_src_celltype[inwin]
+        mol_src_domain = mol_src_domain[inwin]
+        sid = sid[inwin]
+        p0 = p0[inwin]
+        p1 = p1[inwin]
+        eff_center = tuple(window_center)
+        eff_size = tuple(window_size)
 
     # define bin grid over window
     nx = int(np.ceil((max0 - min0) / bin_size_um))
@@ -901,10 +918,10 @@ def aggregate_molecules_to_grid_bins_2d_slices_window(
         "slice_axis": np.array([axis.upper()] * n_obs),
         "slice_id": np.repeat(np.arange(n_slices), bins_per_slice).astype(int),
         "bin_size_um": np.array([bin_size_um] * n_obs, dtype=float),
-        "window_center0": np.array([window_center[0]] * n_obs, dtype=float),
-        "window_center1": np.array([window_center[1]] * n_obs, dtype=float),
-        "window_size0": np.array([window_size[0]] * n_obs, dtype=float),
-        "window_size1": np.array([window_size[1]] * n_obs, dtype=float),
+        "window_center0": np.array([eff_center[0]] * n_obs, dtype=float),
+        "window_center1": np.array([eff_center[1]] * n_obs, dtype=float),
+        "window_size0": np.array([eff_size[0]] * n_obs, dtype=float),
+        "window_size1": np.array([eff_size[1]] * n_obs, dtype=float),
         "plane_dim0": np.array([plane_labels[0]] * n_obs),
         "plane_dim1": np.array([plane_labels[1]] * n_obs),
     }
@@ -931,6 +948,10 @@ def aggregate_molecules_to_spots_2d_slices_window(
     """
     Spot-level per slice within capture window (Visium-like).
     Assign each molecule to nearest spot center, keep if within spot_radius_um.
+
+    ``window_size=None`` disables the capture crop: the spot lattice then spans
+    exactly the molecule bounding box in the slice plane, so no molecule is
+    dropped for being outside a slide and there is no empty border.
     """
     mol_xyz = np.asarray(mol_xyz)
     mol_gene = np.asarray(mol_gene, dtype=np.int32)
@@ -954,19 +975,29 @@ def aggregate_molecules_to_spots_2d_slices_window(
     mol_src_domain = mol_src_domain[keep]
     sid = sid[keep]
 
-    # capture window
-    min0, max0, min1, max1 = _capture_window_from_center(window_center, window_size)
+    # capture window; window_size=None -> span the molecule bounding box (no crop)
     p0 = mol_xyz[:, pd[0]]
     p1 = mol_xyz[:, pd[1]]
-    inwin = (p0 >= min0) & (p0 <= max0) & (p1 >= min1) & (p1 <= max1)
-
-    mol_xyz = mol_xyz[inwin]
-    mol_gene = mol_gene[inwin]
-    mol_src_celltype = mol_src_celltype[inwin]
-    mol_src_domain = mol_src_domain[inwin]
-    sid = sid[inwin]
-    p0 = p0[inwin]
-    p1 = p1[inwin]
+    if window_size is None:
+        if p0.size:
+            min0, max0 = float(p0.min()), float(p0.max())
+            min1, max1 = float(p1.min()), float(p1.max())
+        else:
+            min0 = max0 = min1 = max1 = 0.0
+        eff_center = ((min0 + max0) / 2.0, (min1 + max1) / 2.0)
+        eff_size = (max0 - min0, max1 - min1)
+    else:
+        min0, max0, min1, max1 = _capture_window_from_center(window_center, window_size)
+        inwin = (p0 >= min0) & (p0 <= max0) & (p1 >= min1) & (p1 <= max1)
+        mol_xyz = mol_xyz[inwin]
+        mol_gene = mol_gene[inwin]
+        mol_src_celltype = mol_src_celltype[inwin]
+        mol_src_domain = mol_src_domain[inwin]
+        sid = sid[inwin]
+        p0 = p0[inwin]
+        p1 = p1[inwin]
+        eff_center = tuple(window_center)
+        eff_size = tuple(window_size)
 
     # spot center grid over window
     grid0 = np.arange(min0, max0 + 1e-6, spot_spacing_um, dtype=np.float32)
@@ -1041,10 +1072,10 @@ def aggregate_molecules_to_spots_2d_slices_window(
         "slice_id": np.repeat(np.arange(n_slices), n_spots_plane).astype(int),
         "spot_spacing_um": np.array([spot_spacing_um] * n_obs, dtype=float),
         "spot_radius_um": np.array([spot_radius_um] * n_obs, dtype=float),
-        "window_center0": np.array([window_center[0]] * n_obs, dtype=float),
-        "window_center1": np.array([window_center[1]] * n_obs, dtype=float),
-        "window_size0": np.array([window_size[0]] * n_obs, dtype=float),
-        "window_size1": np.array([window_size[1]] * n_obs, dtype=float),
+        "window_center0": np.array([eff_center[0]] * n_obs, dtype=float),
+        "window_center1": np.array([eff_center[1]] * n_obs, dtype=float),
+        "window_size0": np.array([eff_size[0]] * n_obs, dtype=float),
+        "window_size1": np.array([eff_size[1]] * n_obs, dtype=float),
         "plane_dim0": np.array([plane_labels[0]] * n_obs),
         "plane_dim1": np.array([plane_labels[1]] * n_obs),
     }
@@ -1091,9 +1122,10 @@ def simulate_3d_molecule_sphere_multires(
     sphere_R_um=6000.0,               # 12 mm diameter default
     center=(0.0, 0.0, 0.0),
 
-    # capture windows
-    xenium_capture_window_um=(12000.0, 24000.0),   # 12×24 mm (conceptual)
-    capture_window_um=(6500.0, 6500.0),            # 6.5×6.5 mm
+    # capture windows -- crop cell (xenium) and bin/spot (visium) output to the
+    # slide area; pass False for a window to disable that crop
+    xenium_capture_window_um=(12000.0, 24000.0),   # 12×24 mm, crops cells
+    capture_window_um=(6500.0, 6500.0),            # 6.5×6.5 mm, crops bins/spots
     capture_window_center_um=(0.0, 0.0),           # can shift to include domains
 
     # domains
@@ -1207,6 +1239,7 @@ def simulate_3d_molecule_sphere_multires(
             batch_sigma=batch_sigma,
             capture_window_um=capture_window_um,
             capture_window_center_um=capture_window_center_um,
+            xenium_capture_window_um=xenium_capture_window_um,
             bin_size_um=bin_size_um,
             spot_spacing_um=spot_spacing_um,
             spot_radius_um=spot_radius_um,
@@ -1715,6 +1748,7 @@ def section_3d_molecule_sphere(
     batch_sigma=0.15,
     capture_window_um=None,
     capture_window_center_um=None,
+    xenium_capture_window_um=None,
     bin_size_um=8.0,
     spot_spacing_um=100.0,
     spot_radius_um=27.5,
@@ -1724,6 +1758,22 @@ def section_3d_molecule_sphere(
     output_modalities=None,
     slice_axes=None,
 ):
+    """Slice the intact sphere and apply per-slice capture + batch effects.
+
+    Capture windows (all in the slice plane, centred on
+    ``capture_window_center_um``):
+
+    * ``capture_window_um`` -- bin/spot crop. ``None`` inherits the value
+      recorded by step 1; ``False`` disables the crop (grid spans the molecule
+      bounding box, no empty border); a ``(w, h)`` pair is used as-is.
+    * ``xenium_capture_window_um`` -- cell crop. Same ``None`` / ``False`` /
+      ``(w, h)`` semantics. Cells whose in-plane centroid falls outside the
+      window are dropped, matching a real Xenium capture area.
+
+    NOTE: when the tissue is smaller than the capture window, bin/spot outputs
+    contain all-zero observations around the tissue -- filter them downstream
+    with a per-observation min-count QC.
+    """
     valid_modalities = {"cell", "bin", "spot"}
     if output_modalities is None:
         output_modalities = valid_modalities
@@ -1757,9 +1807,23 @@ def section_3d_molecule_sphere(
     seed = int(meta["seed"])
 
     if capture_window_um is None:
-        capture_window_um = tuple(captures.get("capture_window_um", (6500.0, 6500.0)))
+        inherited = captures.get("capture_window_um", (6500.0, 6500.0))
+        capture_window_um = None if inherited in (None, False) else tuple(inherited)
+    elif capture_window_um is False:
+        capture_window_um = None  # aggregators: None -> bounding-box grid, no crop
     if capture_window_center_um is None:
         capture_window_center_um = tuple(captures.get("capture_window_center_um", (0.0, 0.0)))
+
+    if xenium_capture_window_um is None:
+        inherited = captures.get("xenium_capture_window_um", (12000.0, 24000.0))
+        if inherited is False:
+            xenium_capture_window_um = False
+        elif inherited is None:
+            xenium_capture_window_um = (12000.0, 24000.0)
+        else:
+            xenium_capture_window_um = tuple(inherited)
+    elif xenium_capture_window_um is not False:
+        xenium_capture_window_um = tuple(xenium_capture_window_um)
 
     adata_cell_true = base["adata_cell_true"].copy()
     adata_cell_obs = base["adata_cell_obs"].copy()
@@ -1790,6 +1854,19 @@ def section_3d_molecule_sphere(
             max_deg=max_deg,
             max_shift=max_shift,
         )
+        if xenium_capture_window_um is not False:
+            # crop cells to the (Xenium) capture area, on the aligned in-plane
+            # coords -- same plane-dim order as obsm['spatial']
+            xmin0, xmax0, xmin1, xmax1 = _capture_window_from_center(
+                capture_window_center_um, xenium_capture_window_um
+            )
+            xy = np.asarray(sec.obsm["spatial"])
+            in_win = (
+                (xy[:, 0] >= xmin0) & (xy[:, 0] <= xmax0)
+                & (xy[:, 1] >= xmin1) & (xy[:, 1] <= xmax1)
+            )
+            if not in_win.all():
+                sec = sec[in_win].copy()
         cell_sectioned[AX] = sec
 
     if (generate_bins or generate_spots) and molecules["full_gene"].size == 0:
@@ -1897,6 +1974,7 @@ def section_3d_molecule_sphere(
             captures,
             capture_window_um=capture_window_um,
             capture_window_center_um=capture_window_center_um,
+            xenium_capture_window_um=xenium_capture_window_um,
         ),
         n_slices=int(n_slices),
         batch_sigma=float(batch_sigma),
