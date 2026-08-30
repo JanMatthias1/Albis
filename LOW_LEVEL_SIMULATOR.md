@@ -169,7 +169,7 @@ several differ from `generate_data()`'s smaller tutorial-scale defaults
 | Parameter | Step | Default | Meaning |
 | --- | :-: | ---: | --- |
 | `xenium_capture_window_um` | both | `(12000.0, 24000.0)` | Xenium-like capture region (12x24 mm) for **cell-level** output: cells whose in-plane centroid falls outside it are dropped in step 2. `None` (step 2) inherits the value recorded by step 1; `False` disables the cell crop; a `(w, h)` pair is used as-is. Step 1 records it into `base["meta"]`; step 2 applies it. **If you split into two steps, pass it in step 1 too**, or step 2 inherits step 1's default. |
-| `capture_window_um` | both | `(6500.0, 6500.0)` | Width/height, in microns, of the capture window used for **bin/spot** aggregation. (`generate_data()` defaults to `"platform"`, which resolves to this for bin/spot.) `None` (step 2) inherits the value recorded by step 1; `False` disables the crop — the bin/spot grid then spans the molecule bounding box, so nothing is dropped and there is no empty border; a `(w, h)` pair is used as-is. **If you split into two steps, pass this in step 1 too** (or explicitly in both), or step 2 silently inherits step 1's own default of `(6500.0, 6500.0)` instead of whatever you intended. When the tissue is smaller than the window, bin/spot output has all-zero observations around the tissue — filter them with a per-observation min-count QC. |
+| `capture_window_um` | both | `(6500.0, 6500.0)` | Width/height, in microns, of the capture window used for **bin/spot** aggregation. (`generate_data()` defaults to `"platform"`, which resolves to this for bin/spot.) `None` (step 2) inherits the value recorded by step 1; `False` disables the crop — the bin/spot grid then spans the molecule bounding box, so nothing is dropped and there is no empty border; a `(w, h)` pair is used as-is. **If you split into two steps, pass this in step 1 too** (or explicitly in both), or step 2 silently inherits step 1's own default of `(6500.0, 6500.0)` instead of whatever you intended. When the tissue is smaller than the window, bin/spot output has all-zero observations around the tissue — see [Empty bins and spots](#empty-bins-and-spots) below. |
 | `capture_window_center_um` | both | `(0.0, 0.0)` | Center of the bin/spot **and** cell capture windows, in microns. Same both-steps/inheritance behavior as `capture_window_um`. |
 | `bin_size_um` | 2 | `8.0` | Bin width, in microns, for bin-level output. (`generate_data()` defaults to `20.0`.) Does **not** inherit from step 1 if omitted in step 2 — always falls back to this function's own default. |
 | `spot_spacing_um` | 2 | `100.0` | Center-to-center spacing between spots, in microns. |
@@ -193,6 +193,26 @@ several differ from `generate_data()`'s smaller tutorial-scale defaults
 | `output_modalities` | both | `None` (-> all) | Which of `{"cell", "bin", "spot"}` to generate. `generate_data()` only builds one (`output`). Accepted by **both** calls: step 1 needs it to know which molecule streams to retain for later sectioning, step 2 needs it to know what to actually build. |
 | `sparse_X` | 1 | `True` | Whether count matrices are stored as sparse (`scipy.sparse`) or dense arrays. Not exposed via `generate_data()`. |
 | `seed` | 1 | `2025` | Random seed. |
+
+## Empty bins and spots
+
+The bin/spot grid always tiles the whole capture window on every slice, so any
+grid cell outside the tissue (a small tissue in a large window, or the clipped
+edge of any slice) is returned as an all-zero observation. Both
+`simulate_3d_molecule_sphere_multires` and `section_3d_molecule_sphere` mark
+these:
+
+- `adata.obs["is_empty"]` — `True` where the observation has no molecules
+  (`counts_pre_batch.sum(axis=1) == 0`). Structural flag, kept regardless of
+  truth settings.
+- `adata.obs["domain_true"]` / `["cell_type_true"]` — `"unassigned"` for those
+  rows instead of the `argmax` of an all-zero composition vector (which is
+  always class 0, i.e. `"D0"` / `"type1"`).
+
+The simulator does **not** drop them. Filter downstream with
+`adata = adata[~adata.obs["is_empty"]].copy()` (or any per-observation
+min-count QC), or set `capture_window_um=False` to fit the grid to the tissue.
+`"cell"` output has no `is_empty` column and never uses `"unassigned"`.
 
 ## Parameters exclusive to the low-level API
 

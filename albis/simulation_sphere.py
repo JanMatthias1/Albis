@@ -774,6 +774,31 @@ def _mix_fraction(obs_id, labels, n_classes, n_obs):
     return frac
 
 
+def _empty_obs_mask(frac):
+    """True for observations with no source molecules (all-zero fraction row).
+
+    For bin/spot output these are grid cells that fall inside the capture
+    window but outside the tissue. They are still returned -- expected, and
+    dropped downstream with a per-observation min-count QC filter -- just
+    flagged and labelled honestly rather than silently mislabelled.
+    """
+    return np.asarray(frac).sum(axis=1) == 0
+
+
+def _labels_from_fracs(frac, names, empty_label="unassigned"):
+    """Per-row argmax label, but rows that sum to 0 get ``empty_label``.
+
+    ``np.argmax`` of an all-zero row returns 0, which would silently label
+    every empty bin/spot as the first domain / first cell type. Those
+    observations have no ground-truth class, so they are marked explicitly.
+    Nothing is dropped here -- callers filter empty observations themselves.
+    """
+    frac = np.asarray(frac)
+    labels = np.asarray(names, dtype=object)[np.argmax(frac, axis=1)]
+    labels[_empty_obs_mask(frac)] = empty_label
+    return labels.astype(str)
+
+
 def _capture_window_from_center(center_xy, size_xy):
     """
     Return (min0, max0, min1, max1) for a 2D window.
@@ -1593,8 +1618,9 @@ def simulate_3d_molecule_sphere_multires(
         adb.obsm["spatial"] = spatial3d_b  # temporarily 3D, will be re-mapped below
         adb.obsm["cell_type_frac_true"] = ct_frac_b
         adb.obsm["domain_frac_true"] = dom_frac_b
-        adb.obs["cell_type_true"] = np.array([ct_names[i] for i in np.argmax(ct_frac_b, axis=1)]).astype(str)
-        adb.obs["domain_true"] = np.array([dom_names[i] for i in np.argmax(dom_frac_b, axis=1)]).astype(str)
+        adb.obs["cell_type_true"] = _labels_from_fracs(ct_frac_b, ct_names)
+        adb.obs["domain_true"] = _labels_from_fracs(dom_frac_b, dom_names)
+        adb.obs["is_empty"] = _empty_obs_mask(dom_frac_b)
 
         # batch effects for bins
         Xb_be, factors = apply_batch_effect_per_slice_sparse(
@@ -1642,8 +1668,9 @@ def simulate_3d_molecule_sphere_multires(
         ads.obsm["spatial"] = spatial3d_s  # temporarily 3D, will be re-mapped below
         ads.obsm["cell_type_frac_true"] = ct_frac_s
         ads.obsm["domain_frac_true"] = dom_frac_s
-        ads.obs["cell_type_true"] = np.array([ct_names[i] for i in np.argmax(ct_frac_s, axis=1)]).astype(str)
-        ads.obs["domain_true"] = np.array([dom_names[i] for i in np.argmax(dom_frac_s, axis=1)]).astype(str)
+        ads.obs["cell_type_true"] = _labels_from_fracs(ct_frac_s, ct_names)
+        ads.obs["domain_true"] = _labels_from_fracs(dom_frac_s, dom_names)
+        ads.obs["is_empty"] = _empty_obs_mask(dom_frac_s)
 
         # batch effects for spots
         Xs_be, factors_s = apply_batch_effect_per_slice_sparse(
@@ -1771,8 +1798,10 @@ def section_3d_molecule_sphere(
       window are dropped, matching a real Xenium capture area.
 
     NOTE: when the tissue is smaller than the capture window, bin/spot outputs
-    contain all-zero observations around the tissue -- filter them downstream
-    with a per-observation min-count QC.
+    contain all-zero observations around the tissue. They are flagged with
+    ``obs["is_empty"]`` and labelled ``domain_true``/``cell_type_true`` =
+    ``"unassigned"``; filter them downstream with ``adata[~adata.obs["is_empty"]]``
+    or a per-observation min-count QC.
     """
     valid_modalities = {"cell", "bin", "spot"}
     if output_modalities is None:
@@ -1899,8 +1928,9 @@ def section_3d_molecule_sphere(
         adb.obsm["spatial"] = spatial3d_b
         adb.obsm["cell_type_frac_true"] = ct_frac_b
         adb.obsm["domain_frac_true"] = dom_frac_b
-        adb.obs["cell_type_true"] = np.array([ct_names[i] for i in np.argmax(ct_frac_b, axis=1)]).astype(str)
-        adb.obs["domain_true"] = np.array([dom_names[i] for i in np.argmax(dom_frac_b, axis=1)]).astype(str)
+        adb.obs["cell_type_true"] = _labels_from_fracs(ct_frac_b, ct_names)
+        adb.obs["domain_true"] = _labels_from_fracs(dom_frac_b, dom_names)
+        adb.obs["is_empty"] = _empty_obs_mask(dom_frac_b)
 
         Xb_be, factors = apply_batch_effect_per_slice_sparse(
             adb.X.tocsr(),
@@ -1946,8 +1976,9 @@ def section_3d_molecule_sphere(
         ads.obsm["spatial"] = spatial3d_s
         ads.obsm["cell_type_frac_true"] = ct_frac_s
         ads.obsm["domain_frac_true"] = dom_frac_s
-        ads.obs["cell_type_true"] = np.array([ct_names[i] for i in np.argmax(ct_frac_s, axis=1)]).astype(str)
-        ads.obs["domain_true"] = np.array([dom_names[i] for i in np.argmax(dom_frac_s, axis=1)]).astype(str)
+        ads.obs["cell_type_true"] = _labels_from_fracs(ct_frac_s, ct_names)
+        ads.obs["domain_true"] = _labels_from_fracs(dom_frac_s, dom_names)
+        ads.obs["is_empty"] = _empty_obs_mask(dom_frac_s)
 
         Xs_be, factors_s = apply_batch_effect_per_slice_sparse(
             ads.X.tocsr(),

@@ -171,8 +171,11 @@ def generate_data(parameters=None, /, **overrides):
     * a ``(width, height)`` pair -- that window, applied to any modality.
 
     When the tissue is smaller than the capture window, ``"bin"``/``"spot"``
-    outputs include all-zero observations around the tissue. That is expected --
-    drop them with a per-observation minimum-count QC filter.
+    outputs include all-zero observations around the tissue. That is expected.
+    They are flagged with ``obs["is_empty"]`` and labelled
+    ``domain_true``/``cell_type_true`` = ``"unassigned"``; drop them with
+    ``adata[~adata.obs["is_empty"]]`` or any per-observation minimum-count QC
+    filter.
     """
     config = _resolve_parameters(parameters, overrides)
     _validate_parameters(config)

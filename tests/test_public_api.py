@@ -47,6 +47,25 @@ class PublicApiTest(unittest.TestCase):
         xy = np.asarray(cropped.obsm["spatial"])
         self.assertTrue(np.all(np.abs(xy) <= 75.0 + 1e-6))
 
+    def test_empty_bins_are_flagged_and_not_mislabelled(self):
+        # 250 um tissue inside the 6.5 mm platform window -> most bins are empty.
+        adata = ab.generate_data(output="bin", bin_size_um=60.0, **_SMALL)
+        empty = adata.obs["is_empty"].to_numpy(dtype=bool)
+        x_empty = np.asarray(adata.layers["counts_pre_batch"].sum(axis=1)).ravel() == 0
+        self.assertTrue(empty.any() and not empty.all())
+        np.testing.assert_array_equal(empty, x_empty)
+        # empty observations carry no ground-truth class ...
+        self.assertEqual(set(adata.obs.loc[empty, "domain_true"]), {"unassigned"})
+        self.assertEqual(set(adata.obs.loc[empty, "cell_type_true"]), {"unassigned"})
+        # ... and no non-empty observation is labelled "unassigned"
+        self.assertNotIn("unassigned", set(adata.obs.loc[~empty, "domain_true"]))
+        self.assertNotIn("unassigned", set(adata.obs.loc[~empty, "cell_type_true"]))
+
+    def test_cell_output_has_no_is_empty_flag(self):
+        adata = ab.generate_data(output="cell", **_SMALL)
+        self.assertNotIn("is_empty", adata.obs)
+        self.assertNotIn("unassigned", set(adata.obs["domain_true"]))
+
 
 if __name__ == "__main__":
     unittest.main()

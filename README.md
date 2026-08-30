@@ -238,7 +238,7 @@ locations.
 | Parameter | Default | Meaning |
 | --- | ---: | --- |
 | `n_slices` | `5` | Number of slices generated along the selected axis. |
-| `capture_window_um` | `"platform"` | Capture area cropped from each 2D slice. `"platform"` uses the real slide area for the chosen `output`: 6.5 × 6.5 mm for `"bin"`/`"spot"` (Visium / Visium HD) and `xenium_capture_window_um` (12 × 24 mm) for `"cell"` (Xenium). Pass `False` to disable the crop (bin/spot grids then span the molecule bounding box, with no empty border), or a `(width, height)` pair in microns to apply a custom window to any modality. **When the tissue is smaller than the window, `"bin"`/`"spot"` output contains all-zero observations around the tissue — drop them with a per-observation minimum-count QC filter.** |
+| `capture_window_um` | `"platform"` | Capture area cropped from each 2D slice. `"platform"` uses the real slide area for the chosen `output`: 6.5 × 6.5 mm for `"bin"`/`"spot"` (Visium / Visium HD) and `xenium_capture_window_um` (12 × 24 mm) for `"cell"` (Xenium). Pass `False` to disable the crop (bin/spot grids then span the molecule bounding box, with no empty border), or a `(width, height)` pair in microns to apply a custom window to any modality. **When the tissue is smaller than the window, `"bin"`/`"spot"` output contains all-zero observations around the tissue — see [Empty bins and spots](#empty-bins-and-spots) below.** |
 | `xenium_capture_window_um` | `(12000, 24000)` | Xenium slide area, in microns, used as the `"cell"` capture window when `capture_window_um="platform"`. Cells whose in-plane centroid falls outside it are dropped. |
 | `bin_size_um` | `20.0` | Bin width, in microns, for `output="bin"`. |
 | `spot_spacing_um` | `100.0` | Center-to-center spacing between spots, in microns, for `output="spot"`. |
@@ -268,7 +268,7 @@ final observed counts after slice-specific batch effects.
 | --- | --- |
 | `adata.X` | Final observation-by-gene count matrix. |
 | `adata.layers["counts_pre_batch"]` | Counts before batch effects; present when `include_truth=True`. |
-| `adata.obs` | Slice IDs, capture/grid metadata, and available truth labels. |
+| `adata.obs` | Slice IDs, capture/grid metadata, and available truth labels. For `"bin"`/`"spot"`, `obs["is_empty"]` marks grid cells with no molecules (see [Empty bins and spots](#empty-bins-and-spots)). |
 | `adata.var` | Marker/noise-gene annotations. |
 | `adata.obsm["spatial"]` | Canonical aligned 2D coordinates in the selected slice plane. |
 | `adata.obsm["spatial_unaligned"]` | Per-slice rigidly transformed 2D coordinates. |
@@ -294,6 +294,30 @@ assignment, so molecules can spill into another cell or be unassigned.
 
 Set `include_truth=False` to remove `counts_pre_batch`, composition fractions,
 and direct cell/domain truth labels from the returned object.
+
+### Empty bins and spots
+
+The `"bin"`/`"spot"` grid always tiles the **whole capture window**, on every
+slice, regardless of how much tissue that slice actually contains. When the
+tissue is smaller than the window (or a slice only clips its edge), the grid
+cells outside the tissue are still returned as all-zero observations.
+
+These empty observations are handled explicitly:
+
+- `adata.obs["is_empty"]` is `True` for every observation with no molecules
+  (equivalently `adata.layers["counts_pre_batch"].sum(axis=1) == 0`). It is a
+  structural flag, not a truth label, so it survives `include_truth=False`.
+- `adata.obs["domain_true"]` and `adata.obs["cell_type_true"]` are set to
+  `"unassigned"` for those rows. They are the argmax of the source-composition
+  fractions, and an empty row has none — without this they would silently
+  collapse to the first class (`"D0"` / `"type1"`).
+
+Empty observations are **not dropped** by the simulator — that is the caller's
+choice. Filter them before analysis with a per-observation minimum-count QC,
+e.g. `adata = adata[~adata.obs["is_empty"]].copy()`, or pass
+`capture_window_um=False` to fit the grid to the tissue in the first place.
+`"cell"` output is unaffected: cells only exist where there is tissue, so it
+has no `is_empty` column and never uses the `"unassigned"` label.
 
 ## Describe and Save
 
