@@ -246,8 +246,7 @@ these:
   (`counts_pre_batch.sum(axis=1) == 0`). Structural flag, kept regardless of
   truth settings.
 - `adata.obs["domain_true"]` / `["cell_type_true"]` — `"unassigned"` for those
-  rows instead of the `argmax` of an all-zero composition vector (which is
-  always class 0, i.e. `"D0"` / `"type1"`).
+  rows.
 
 The simulator does **not** drop them. Filter downstream with
 `adata = adata[~adata.obs["is_empty"]].copy()` (or any per-observation
