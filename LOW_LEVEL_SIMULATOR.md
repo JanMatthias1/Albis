@@ -89,25 +89,12 @@ per requested slicing axis.
 
 Parameters are grouped and ordered to match the manuscript's Methods section,
 paragraph by paragraph. The **Step** column says which call each parameter
-belongs to, using the same **step 1** / **step 2** names as the
-[One-shot vs. two-step](#one-shot-vs-two-step) section above:
-
-- **1** = `simulate_3d_molecule_sphere_base(...)` only — tissue, cells,
-  domains, gene panel, molecules.
-- **2** = `section_3d_molecule_sphere(...)` only — slicing, capture-window
-  cropping, aggregation into bin/spot, batch effects.
-- **both** = accepted by both calls. This matters only if you're using the
-  two-step pattern (a one-shot `simulate_3d_molecule_sphere_multires(...)`
-  call always passes everything to both internally, so one-shot users can
-  skip this): step 1 resolves the parameter and records it in
-  `base["meta"]`; step 2 then either reuses that recorded value (pass
-  `None`, its own default for these params) or overrides it (pass an
-  explicit value). **If you call step 1 and step 2 separately, pass the
-  same value to both** — passing it only to step 1 and leaving step 2 at
-  `None` works (step 2 inherits), but passing it only to step 2 does
-  *not* make step 1 aware of it, and passing neither silently uses step
-  2's *own* default, which may not match what you set in step 1. See the
-  `capture_window_um` row below for a concrete example of this.
+belongs to: pass step-1 parameters to step 1
+(`simulate_3d_molecule_sphere_base(...)`), and step-2 parameters to step 2
+(`section_3d_molecule_sphere(...)`) — see
+[One-shot vs. two-step](#one-shot-vs-two-step) above. **both** means the
+parameter is accepted by either call; see the `capture_window_um` row below
+for what to do with those in the two-step pattern.
 
 Defaults are each function's own defaults — several differ from
 `generate_data()`'s smaller tutorial-scale defaults (noted where relevant).
