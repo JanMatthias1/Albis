@@ -240,7 +240,7 @@ locations.
 | `n_slices` | `5` | Number of slices generated along the selected axis. |
 | `capture_window_um` | `"platform"` | Capture area cropped from each 2D slice. `"platform"` uses the real slide area for the chosen `output`: 6.5 × 6.5 mm for `"bin"`/`"spot"` (Visium / Visium HD) and `xenium_capture_window_um` (12 × 24 mm) for `"cell"` (Xenium). Pass `False` to disable the crop (bin/spot grids then span the molecule bounding box, with no empty border), or a `(width, height)` pair in microns to apply a custom window to any modality. **When the tissue is smaller than the window, `"bin"`/`"spot"` output contains all-zero observations around the tissue — see [Empty bins and spots](#empty-bins-and-spots) below.** |
 | `xenium_capture_window_um` | `(12000, 24000)` | Xenium slide area, in microns, used as the `"cell"` capture window when `capture_window_um="platform"`. Cells whose in-plane centroid falls outside it are dropped. |
-| `bin_size_um` | `20.0` | Bin width, in microns, for `output="bin"`. |
+| `bin_size_um` | `16.0` | Bin width, in microns, for `output="bin"` (Visium HD 16um bin). |
 | `spot_spacing_um` | `100.0` | Center-to-center spacing between spots, in microns, for `output="spot"`. |
 | `spot_radius_um` | `27.5` | Capture radius of each spot, in microns, for `output="spot"`. |
 | `batch_sigma` | `0.15` | Standard deviation of the per-slice, per-gene log-fold-change applied to simulate batch effects across slices. |
@@ -269,7 +269,10 @@ final observed counts after slice-specific batch effects.
 | --- | --- |
 | `adata.X` | Final observation-by-gene count matrix. |
 | `adata.layers["counts_pre_batch"]` | Counts before batch effects; present when `include_truth=True`. |
-| `adata.obs` | Slice IDs, capture/grid metadata, and available truth labels. For `"bin"`/`"spot"`, `obs["is_empty"]` marks grid cells with no molecules (see [Empty bins and spots](#empty-bins-and-spots)). |
+| `adata.obs` | Slice IDs and capture/grid metadata. |
+| `adata.obs["domain_true"]` | Ground-truth spatial domain. For `"cell"`, the identity draw fixed at cell-placement time; for `"bin"`/`"spot"`, the argmax of `domain_frac_true`. |
+| `adata.obs["cell_type_true"]` | Ground-truth cell type. Same true/derived split as `domain_true` above. |
+| `adata.obs["is_empty"]` | `"bin"`/`"spot"` only — `True` for grid cells with no molecules (see [Empty bins and spots](#empty-bins-and-spots)); those rows get `domain_true`/`cell_type_true` `"unassigned"`. Not present for `"cell"`. |
 | `adata.var` | Marker/noise-gene annotations. |
 | `adata.obsm["spatial"]` | Canonical aligned 2D coordinates in the selected slice plane. |
 | `adata.obsm["spatial_unaligned"]` | Per-slice rigidly transformed 2D coordinates. |

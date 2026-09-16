@@ -33,7 +33,7 @@ DEFAULT_PARAMETERS = {
     "xenium_capture_window_um": (12_000.0, 24_000.0),
     "capture_window_um": "platform",
     "capture_window_center_um": (0.0, 0.0),
-    "bin_size_um": 20.0,
+    "bin_size_um": 16.0,
     "spot_spacing_um": 100.0,
     "spot_radius_um": 27.5,
     "marker_genes_per_type": 80,

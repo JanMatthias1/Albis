@@ -210,7 +210,7 @@ Defaults are each function's own defaults — several differ from
 
 | Parameter | Step | Default | Meaning |
 | --- | :-: | ---: | --- |
-| `bin_size_um` | 2 | `8.0` | Bin width, in microns, for bin-level output. (`generate_data()` defaults to `20.0`.) Does **not** inherit from step 1 if omitted in step 2 — always falls back to this function's own default. |
+| `bin_size_um` | 2 | `8.0` | Bin width, in microns, for bin-level output. (`generate_data()` defaults to `16.0`, a Visium HD 16um bin.) Does **not** inherit from step 1 if omitted in step 2 — always falls back to this function's own default. |
 | `spot_spacing_um` | 2 | `100.0` | Center-to-center spacing between spots, in microns. |
 | `spot_radius_um` | 2 | `27.5` | Capture radius of each spot, in microns. |
 
@@ -233,6 +233,54 @@ Defaults are each function's own defaults — several differ from
 | `output_modalities` | both | `None` (-> all) | Which of `{"cell", "bin", "spot"}` to generate. `generate_data()` only builds one (`output`). Accepted by **both** calls: step 1 needs it to know which molecule streams to retain for later sectioning, step 2 needs it to know what to actually build. |
 | `sparse_X` | 1 | `True` | Whether count matrices are stored as sparse (`scipy.sparse`) or dense arrays. Not exposed via `generate_data()`. |
 | `seed` | 1 | `2025` | Random seed. |
+
+A low-level call returns several `AnnData` objects at once (unlike
+`generate_data()`, which hands back exactly one), so save whichever ones you
+need individually with `ab.save(adata, path)` (a thin wrapper around
+`adata.write_h5ad(path)`):
+
+```python
+sim = ab.simulate_3d_molecule_sphere_multires(
+    output_modalities=("cell", "bin", "spot"), slice_axes=("Z",),
+)
+ab.save(sim["adata_cell_true"], "cell_true.h5ad")          # clean, pre-spillover
+ab.save(sim["adata_cell_obs"], "cell_obs.h5ad")             # spillover-reassigned, no batch effect yet
+ab.save(sim["adata_cell_sectioned"]["Z"], "cell_final_Z.h5ad")  # + slice_id + batch effect (what generate_data() would give you)
+ab.save(sim["bin_adatas"]["Z"], "bin_final_Z.h5ad")
+ab.save(sim["spot_adatas"]["Z"], "spot_final_Z.h5ad")
+```
+
+## Truth annotations
+
+For `output="bin"` and `output="spot"`, composition fractions are computed
+from each molecule's source cell type/domain. Molecules outside every cell can
+still contribute to bin and spot counts. Cell output uses containment-based
+assignment, so molecules can spill into another cell or be unassigned.
+
+For `output="cell"`, `obs["cell_type_true"]`/`obs["domain_true"]` are each
+cell's one-time identity draw, fixed at cell-placement time and shared
+unchanged by `adata_cell_true` and `adata_cell_obs` — only `.X` differs
+between them. `adata_cell_true.X` is the clean per-type NB draw; for
+`adata_cell_obs.X`, every transcript is reassigned to whichever cell's radius
+physically contains it (not necessarily the cell that emitted it), so ~5% of
+a cell's own transcripts drift out to neighbors and neighbors' transcripts
+drift in. The label is never recomputed from that spillover-contaminated
+`.X`, so a heavily-contaminated cell can still carry its original
+`cell_type_true`. This is also why `cell_type_frac_true`/`domain_frac_true`
+exist only for bin/spot: a cell has one true identity to report, but a
+bin/spot is just a patch of space with none of its own — its
+`cell_type_true`/`domain_true` are themselves an argmax over the
+transcript-source mixture in that patch, and the fraction vector records the
+full mixture behind that argmax.
+
+Unlike `generate_data()`, which only ever returns `adata_cell_sectioned` (built
+from `adata_cell_obs`, see the save example above), the low-level API gives
+you `adata_cell_true` and `adata_cell_obs` directly — so this is the only way
+to actually compare the clean and spillover-contaminated counts side by side
+for the same cells.
+
+Set `include_truth=False` to remove `counts_pre_batch`, composition fractions,
+and direct cell/domain truth labels from the returned object.
 
 ## Empty bins and spots
 
