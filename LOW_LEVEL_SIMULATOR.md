@@ -89,12 +89,14 @@ per requested slicing axis.
 
 Parameters are grouped and ordered to match the manuscript's Methods section,
 paragraph by paragraph. The **Step** column says which call each parameter
-belongs to: pass step-1 parameters to step 1
-(`simulate_3d_molecule_sphere_base(...)`), and step-2 parameters to step 2
-(`section_3d_molecule_sphere(...)`) — see
-[One-shot vs. two-step](#one-shot-vs-two-step) above. **both** means the
-parameter is accepted by either call; see the `capture_window_um` row below
-for what to do with those in the two-step pattern.
+belongs to (see [One-shot vs. two-step](#one-shot-vs-two-step) above):
+
+- **1** → pass it to step 1, `simulate_3d_molecule_sphere_base(...)`.
+- **2** → pass it to step 2, `section_3d_molecule_sphere(...)`.
+- **both** → accepted by either call. Step 1 resolves it and records it on
+  `base`; step 2 defaults to inheriting that recorded value, but an
+  explicit value passed at step 2 overrides it instead. See the
+  `capture_window_um` row below for a concrete example.
 
 Defaults are each function's own defaults — several differ from
 `generate_data()`'s smaller tutorial-scale defaults (noted where relevant).
