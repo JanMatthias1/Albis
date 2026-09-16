@@ -255,6 +255,7 @@ locations.
 | --- | ---: | --- |
 | `seed` | `2025` | Random seed governing cell placement, gene expression, and batch effects. |
 | `base_seed_unaligned` | `12345` | Random seed governing the per-slice rotation and translation used to generate unaligned coordinates. |
+| `sync_unaligned_seed` | `False` | By default, each `output` modality (`"cell"`/`"bin"`/`"spot"`) draws a *different* per-slice unaligned rotation/translation even with the same `base_seed_unaligned` and `seed` -- separate `generate_data()` calls per modality are decorrelated on purpose. Set `sync_unaligned_seed=True` to make all three modalities draw the *same* per-slice transform instead (same `sphere_radius_um`/`max_deg`/`max_shift`/`base_seed_unaligned`/`seed` required too), e.g. to compare how different modalities' own alignment method resolves an identical starting misalignment. |
 
 Use `ab.DEFAULT_PARAMETERS` to inspect the complete supported parameter
 set. Unsupported values fail early with a descriptive error.
@@ -284,6 +285,10 @@ final observed counts after slice-specific batch effects.
 random rigid transform: a rotation plus a translation. No scaling, shearing,
 or molecule resimulation occurs. `spatial_3d_unaligned` applies that transform
 to the corresponding plane while retaining the coordinate normal to the slice.
+This per-slice transform is independent across `output` modalities by default
+(a `"bin"` call and a `"spot"` call with identical parameters still get
+different unaligned coordinates) -- pass `sync_unaligned_seed=True` if you
+want `"cell"`/`"bin"`/`"spot"` to share the same perturbation instead.
 
 ### Truth annotations
 

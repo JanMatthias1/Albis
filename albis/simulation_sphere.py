@@ -1645,7 +1645,7 @@ def simulate_3d_molecule_sphere_multires(
             axis_letter=ax.upper(),
             slice_key="slice_id",
             unaligned_key="spatial_unaligned",
-            base_seed=base_seed_unaligned + modality_offset["bin"] + ord(ax),
+            base_seed=base_seed_unaligned + modality_offset["bin"] + ord(ax.upper() if sync_unaligned_seed else ax),
             max_deg=max_deg,
             max_shift=max_shift,
         )
@@ -1695,7 +1695,7 @@ def simulate_3d_molecule_sphere_multires(
             axis_letter=ax.upper(),
             slice_key="slice_id",
             unaligned_key="spatial_unaligned",
-            base_seed=base_seed_unaligned + modality_offset["spot"] + ord(ax),
+            base_seed=base_seed_unaligned + modality_offset["spot"] + ord(ax.upper() if sync_unaligned_seed else ax),
             max_deg=max_deg,
             max_shift=max_shift,
         )
@@ -1969,7 +1969,7 @@ def section_3d_molecule_sphere(
             axis_letter=ax.upper(),
             slice_key="slice_id",
             unaligned_key="spatial_unaligned",
-            base_seed=base_seed_unaligned + modality_offset["bin"] + ord(ax),
+            base_seed=base_seed_unaligned + modality_offset["bin"] + ord(ax.upper() if sync_unaligned_seed else ax),
             max_deg=max_deg,
             max_shift=max_shift,
         )
@@ -2017,7 +2017,7 @@ def section_3d_molecule_sphere(
             axis_letter=ax.upper(),
             slice_key="slice_id",
             unaligned_key="spatial_unaligned",
-            base_seed=base_seed_unaligned + modality_offset["spot"] + ord(ax),
+            base_seed=base_seed_unaligned + modality_offset["spot"] + ord(ax.upper() if sync_unaligned_seed else ax),
             max_deg=max_deg,
             max_shift=max_shift,
         )

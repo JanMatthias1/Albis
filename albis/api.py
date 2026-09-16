@@ -46,6 +46,7 @@ DEFAULT_PARAMETERS = {
     "max_deg": 180.0,
     "max_shift": 200.0,
     "base_seed_unaligned": 12345,
+    "sync_unaligned_seed": False,
     "seed": 2025,
 }
 
@@ -227,6 +228,7 @@ def generate_data(parameters=None, /, **overrides):
         max_deg=float(config["max_deg"]),
         max_shift=float(config["max_shift"]),
         base_seed_unaligned=int(config["base_seed_unaligned"]),
+        sync_unaligned_seed=bool(config["sync_unaligned_seed"]),
         seed=int(config["seed"]),
         output_modalities=(config["output"],),
         slice_axes=(config["slice_axis"],),
