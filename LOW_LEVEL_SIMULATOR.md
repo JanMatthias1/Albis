@@ -70,14 +70,20 @@ bin_adata_x = sim["bin_adatas"]["X"]
 spot_adata_z = sim["spot_adatas"]["Z"]
 ```
 
-`simulate_3d_molecule_sphere_base(**kwargs)` is literally
-`simulate_3d_molecule_sphere_multires(**kwargs, _section=False)` — it stops
-right after tissue/cell/domain/gene/molecule generation and returns that
-checkpoint (`adata_cell_true`, `adata_cell_obs`, `meta`, and a `molecules`
-dict with transcript coordinates and source labels) instead of proceeding to
-slicing. `section_3d_molecule_sphere(base, ...)` picks up from there. To make
-bin or spot outputs later, generate `base` with `output_modalities` including
-`"bin"`/`"spot"` so the full molecule stream is retained.
+- **`simulate_3d_molecule_sphere_base`** generates the tissue sphere — cells,
+  domains, gene panel, molecules — but does **not** slice it up. It returns a
+  checkpoint dict (`adata_cell_true`, `adata_cell_obs`, `meta`, and a
+  `molecules` dict of transcript coordinates and source labels), not an
+  `AnnData` you can use directly. (It's literally
+  `simulate_3d_molecule_sphere_multires(**kwargs, _section=False)`.)
+- **`section_3d_molecule_sphere(base, ...)`** does the rest: slicing, capture
+  windows, bin/spot aggregation, batch effects — and returns the actual
+  `AnnData` objects.
+
+One thing to get right when splitting into two steps: if you want bin or
+spot output later, `base` needs to have been built with `output_modalities`
+including `"bin"`/`"spot"`, so the full molecule stream needed for
+aggregation is retained (single-cell-only generation discards it).
 
 `output_modalities` and `slice_axes` each default to every supported value
 (`{"cell", "bin", "spot"}` and `("X", "Y", "Z")`) when omitted, so a bare

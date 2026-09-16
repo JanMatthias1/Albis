@@ -218,7 +218,7 @@ locations.
 | Parameter | Default | Meaning |
 | --- | ---: | --- |
 | `n_cell_types` | `4` | Number of cell types. |
-| `domain_type_mix` | `None` | Optional `(n_domains, n_cell_types)` composition matrix specifying which cell types occur in each domain, and in what proportions. Each row is renormalized to a probability distribution and used to draw the cell type of every cell assigned to that domain. Defaults to a small built-in 4x4 example composition **only when `n_domains=4` and `n_cell_types=4` exactly**; for any other `n_domains`/`n_cell_types`, it silently falls back to a **fully uniform** mix instead. |
+| `domain_type_mix` | `None` | Optional `(n_domains, n_cell_types)` composition matrix specifying which cell types occur in each domain, and in what proportions. Each row is renormalized to a probability distribution and used to draw the cell type of every cell assigned to that domain. `None` uses a small built-in example composition, but that built-in matrix is a fixed 4x4 — it only applies as-is when `n_domains=4` and `n_cell_types=4`. Change either away from the 4/4 default without supplying your own `domain_type_mix`, and every domain silently gets the exact same uniform mix instead (a `UserWarning` is raised, but nothing errors — see below). |
 | `marker_genes_per_type` | `80` | Number of marker genes assigned to each cell type. |
 | `noise_gene_frac` | `0.10` | Fraction of the gene panel carrying no cell-type signal. |
 | `shared_marker_frac` | `0.25` | Fraction of each cell type's markers shared with other cell types, rather than unique to it. |
@@ -313,9 +313,7 @@ These empty observations are handled explicitly:
   (equivalently `adata.layers["counts_pre_batch"].sum(axis=1) == 0`). It is a
   structural flag, not a truth label, so it survives `include_truth=False`.
 - `adata.obs["domain_true"]` and `adata.obs["cell_type_true"]` are set to
-  `"unassigned"` for those rows. They are the argmax of the source-composition
-  fractions, and an empty row has none — without this they would silently
-  collapse to the first class (`"D0"` / `"type1"`).
+  `"unassigned"` for those rows.
 
 Empty observations are **not dropped** by the simulator — that is the caller's
 choice. Filter them before analysis with a per-observation minimum-count QC,
