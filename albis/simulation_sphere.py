@@ -1209,6 +1209,7 @@ def simulate_3d_molecule_sphere_multires(
     max_deg=180.0,
     max_shift=200.0,
     base_seed_unaligned=12345,
+    sync_unaligned_seed=False,
 
     # general
     seed=2025,
@@ -1271,6 +1272,7 @@ def simulate_3d_molecule_sphere_multires(
             max_deg=max_deg,
             max_shift=max_shift,
             base_seed_unaligned=base_seed_unaligned,
+            sync_unaligned_seed=sync_unaligned_seed,
             output_modalities=output_modalities,
             slice_axes=slice_axes,
         )
@@ -1572,6 +1574,11 @@ def simulate_3d_molecule_sphere_multires(
     add_slice_ids_to_cells(adata_cell_obs, sphere_R_um=sphere_R_um, n_slices=n_slices, center=center)
     add_slice_ids_to_cells(adata_cell_true, sphere_R_um=sphere_R_um, n_slices=n_slices, center=center)
 
+    # per-modality seed offset for the unaligned-coordinate perturbation -- see
+    # sync_unaligned_seed docstring note in section_3d_molecule_sphere.
+    modality_offset = {"cell": 0, "bin": 0, "spot": 0} if sync_unaligned_seed else \
+        {"cell": 10_000, "bin": 20_000, "spot": 30_000}
+
     # ---- cell-level: sectioned versions with batch effects ----
     cell_sectioned = {}
     for AX in (output_axes if generate_cells else ()):
@@ -1583,7 +1590,7 @@ def simulate_3d_molecule_sphere_multires(
             axis_letter=AX,
             slice_key="slice_id",
             unaligned_key="spatial_unaligned",
-            base_seed=base_seed_unaligned + 10_000 + ord(AX),
+            base_seed=base_seed_unaligned + modality_offset["cell"] + ord(AX),
             max_deg=max_deg,
             max_shift=max_shift,
         )
@@ -1638,7 +1645,7 @@ def simulate_3d_molecule_sphere_multires(
             axis_letter=ax.upper(),
             slice_key="slice_id",
             unaligned_key="spatial_unaligned",
-            base_seed=base_seed_unaligned + 20_000 + ord(ax),
+            base_seed=base_seed_unaligned + modality_offset["bin"] + ord(ax),
             max_deg=max_deg,
             max_shift=max_shift,
         )
@@ -1688,7 +1695,7 @@ def simulate_3d_molecule_sphere_multires(
             axis_letter=ax.upper(),
             slice_key="slice_id",
             unaligned_key="spatial_unaligned",
-            base_seed=base_seed_unaligned + 30_000 + ord(ax),
+            base_seed=base_seed_unaligned + modality_offset["spot"] + ord(ax),
             max_deg=max_deg,
             max_shift=max_shift,
         )
@@ -1782,6 +1789,7 @@ def section_3d_molecule_sphere(
     max_deg=180.0,
     max_shift=200.0,
     base_seed_unaligned=12345,
+    sync_unaligned_seed=False,
     output_modalities=None,
     slice_axes=None,
 ):
@@ -1802,7 +1810,22 @@ def section_3d_molecule_sphere(
     ``obs["is_empty"]`` and labelled ``domain_true``/``cell_type_true`` =
     ``"unassigned"``; filter them downstream with ``adata[~adata.obs["is_empty"]]``
     or a per-observation min-count QC.
+
+    ``sync_unaligned_seed``: the per-slice unaligned-coordinate perturbation
+    (rotation + translation) is seeded as ``base_seed_unaligned + modality_offset
+    + ord(axis) + slice_id``, where ``modality_offset`` is normally a different
+    fixed constant per modality (10_000 cell / 20_000 bin / 30_000 spot) so that
+    a single call requesting multiple modalities at once doesn't give them all
+    the identical perturbation. Pass ``sync_unaligned_seed=True`` to use
+    ``modality_offset=0`` for all three instead, so cell/bin/spot draw the SAME
+    per-slice perturbation when generated with matching ``base_seed_unaligned``/
+    ``max_deg``/``max_shift`` (even across separate single-modality calls, e.g.
+    one ``generate_simulation_noisy.py --modality X`` run per modality) --
+    useful for isolating how each modality's own alignment method resolves an
+    identical starting misalignment. Default False preserves prior behavior.
     """
+    modality_offset = {"cell": 0, "bin": 0, "spot": 0} if sync_unaligned_seed else \
+        {"cell": 10_000, "bin": 20_000, "spot": 30_000}
     valid_modalities = {"cell", "bin", "spot"}
     if output_modalities is None:
         output_modalities = valid_modalities
@@ -1879,7 +1902,7 @@ def section_3d_molecule_sphere(
             axis_letter=AX,
             slice_key="slice_id",
             unaligned_key="spatial_unaligned",
-            base_seed=base_seed_unaligned + 10_000 + ord(AX),
+            base_seed=base_seed_unaligned + modality_offset["cell"] + ord(AX),
             max_deg=max_deg,
             max_shift=max_shift,
         )
@@ -1946,7 +1969,7 @@ def section_3d_molecule_sphere(
             axis_letter=ax.upper(),
             slice_key="slice_id",
             unaligned_key="spatial_unaligned",
-            base_seed=base_seed_unaligned + 20_000 + ord(ax),
+            base_seed=base_seed_unaligned + modality_offset["bin"] + ord(ax),
             max_deg=max_deg,
             max_shift=max_shift,
         )
@@ -1994,7 +2017,7 @@ def section_3d_molecule_sphere(
             axis_letter=ax.upper(),
             slice_key="slice_id",
             unaligned_key="spatial_unaligned",
-            base_seed=base_seed_unaligned + 30_000 + ord(ax),
+            base_seed=base_seed_unaligned + modality_offset["spot"] + ord(ax),
             max_deg=max_deg,
             max_shift=max_shift,
         )
