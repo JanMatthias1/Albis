@@ -284,13 +284,6 @@ final observed counts after slice-specific batch effects.
 | `adata.uns["sim_params"]` | Resolved simulation configuration and simulator metadata. |
 | `adata.uns["output"]` | Selected platform and slice axis. |
 
-There's no `cell_type_obs`/`domain_obs` field — the true/obs distinction only
-ever applies to `.X` (see [Truth annotations](#truth-annotations) below).
-Every modality has exactly one `cell_type_true`/`domain_true` label, fixed
-and shared by construction. For `"cell"` that label *is* the identity draw;
-for `"bin"`/`"spot"` it's the argmax of `cell_type_frac_true`/
-`domain_frac_true` — the only place those two fraction fields exist.
-
 `spatial_unaligned` is not shuffled data. Each slice receives one deterministic
 random rigid transform: a rotation plus a translation. No scaling, shearing,
 or molecule resimulation occurs. `spatial_3d_unaligned` applies that transform
@@ -299,32 +292,6 @@ This per-slice transform is independent across `output` modalities by default
 (a `"bin"` call and a `"spot"` call with identical parameters still get
 different unaligned coordinates) -- pass `sync_unaligned_seed=True` if you
 want `"cell"`/`"bin"`/`"spot"` to share the same perturbation instead.
-
-### Truth annotations
-
-For `output="bin"` and `output="spot"`, composition fractions are computed
-from each molecule's source cell type/domain. Molecules outside every cell can
-still contribute to bin and spot counts. Cell output uses containment-based
-assignment, so molecules can spill into another cell or be unassigned.
-
-For `output="cell"`, `obs["cell_type_true"]`/`obs["domain_true"]` are each
-cell's one-time identity draw, fixed at cell-placement time and shared
-unchanged by `adata_cell_true` and `adata_cell_obs` — only `.X` differs
-between them. `adata_cell_true.X` is the clean per-type NB draw; for
-`adata_cell_obs.X`, every transcript is reassigned to whichever cell's radius
-physically contains it (not necessarily the cell that emitted it), so ~5% of
-a cell's own transcripts drift out to neighbors and neighbors' transcripts
-drift in. The label is never recomputed from that spillover-contaminated
-`.X`, so a heavily-contaminated cell can still carry its original
-`cell_type_true`. This is also why `cell_type_frac_true`/`domain_frac_true`
-exist only for bin/spot: a cell has one true identity to report, but a
-bin/spot is just a patch of space with none of its own — its
-`cell_type_true`/`domain_true` are themselves an argmax over the
-transcript-source mixture in that patch, and the fraction vector records the
-full mixture behind that argmax.
-
-Set `include_truth=False` to remove `counts_pre_batch`, composition fractions,
-and direct cell/domain truth labels from the returned object.
 
 ### Empty bins and spots
 
