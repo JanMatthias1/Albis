@@ -89,12 +89,28 @@ per requested slicing axis.
 
 Parameters are grouped and ordered to match the manuscript's Methods section,
 paragraph by paragraph. The **Step** column says which call each parameter
-belongs to: **1** = `simulate_3d_molecule_sphere_base(...)` only, **2** =
-`section_3d_molecule_sphere(...)` only, **both** = accepted by both (needed
-by both if you use the two-step pattern — see the `capture_window_um` note
-below for why this matters). Defaults are each function's own defaults —
-several differ from `generate_data()`'s smaller tutorial-scale defaults
-(noted where relevant).
+belongs to, using the same **step 1** / **step 2** names as the
+[One-shot vs. two-step](#one-shot-vs-two-step) section above:
+
+- **1** = `simulate_3d_molecule_sphere_base(...)` only — tissue, cells,
+  domains, gene panel, molecules.
+- **2** = `section_3d_molecule_sphere(...)` only — slicing, capture-window
+  cropping, aggregation into bin/spot, batch effects.
+- **both** = accepted by both calls. This matters only if you're using the
+  two-step pattern (a one-shot `simulate_3d_molecule_sphere_multires(...)`
+  call always passes everything to both internally, so one-shot users can
+  skip this): step 1 resolves the parameter and records it in
+  `base["meta"]`; step 2 then either reuses that recorded value (pass
+  `None`, its own default for these params) or overrides it (pass an
+  explicit value). **If you call step 1 and step 2 separately, pass the
+  same value to both** — passing it only to step 1 and leaving step 2 at
+  `None` works (step 2 inherits), but passing it only to step 2 does
+  *not* make step 1 aware of it, and passing neither silently uses step
+  2's *own* default, which may not match what you set in step 1. See the
+  `capture_window_um` row below for a concrete example of this.
+
+Defaults are each function's own defaults — several differ from
+`generate_data()`'s smaller tutorial-scale defaults (noted where relevant).
 
 ### 3D tissue geometry and cell placement
 
@@ -166,11 +182,17 @@ several differ from `generate_data()`'s smaller tutorial-scale defaults
 
 ### Platform-specific capture windows
 
-| Parameter | Step | Default | Meaning |
-| --- | :-: | ---: | --- |
-| `xenium_capture_window_um` | both | `(12000.0, 24000.0)` | Xenium-like capture region (12x24 mm) for **cell-level** output: cells whose in-plane centroid falls outside it are dropped in step 2. `None` (step 2) inherits the value recorded by step 1; `False` disables the cell crop; a `(w, h)` pair is used as-is. Step 1 records it into `base["meta"]`; step 2 applies it. **If you split into two steps, pass it in step 1 too**, or step 2 inherits step 1's default. |
-| `capture_window_um` | both | `(6500.0, 6500.0)` | Width/height, in microns, of the capture window used for **bin/spot** aggregation. (`generate_data()` defaults to `"platform"`, which resolves to this for bin/spot.) `None` (step 2) inherits the value recorded by step 1; `False` disables the crop — the bin/spot grid then spans the molecule bounding box, so nothing is dropped and there is no empty border; a `(w, h)` pair is used as-is. **If you split into two steps, pass this in step 1 too** (or explicitly in both), or step 2 silently inherits step 1's own default of `(6500.0, 6500.0)` instead of whatever you intended. When the tissue is smaller than the window, bin/spot output has all-zero observations around the tissue — see [Empty bins and spots](#empty-bins-and-spots) below. |
-| `capture_window_center_um` | both | `(0.0, 0.0)` | Center of the bin/spot **and** cell capture windows, in microns. Same both-steps/inheritance behavior as `capture_window_um`. |
+All three parameters below follow the shared step-1/step-2 pattern described
+in [Full parameter reference](#full-parameter-reference) above: `None` means
+"use what step 1 recorded", `False` disables that crop entirely, and an
+explicit `(w, h)` (or, for the center, `(x, y)`) pair overrides it. Pass the
+same value to both steps if you're using the two-step pattern.
+
+| Parameter | Step | Default | Crops | Meaning |
+| --- | :-: | ---: | --- | --- |
+| `xenium_capture_window_um` | both | `(12000.0, 24000.0)` | **cell** | Xenium-like capture region (12×24 mm). Cells whose in-plane centroid falls outside it are dropped in step 2. `False` disables the cell crop. |
+| `capture_window_um` | both | `(6500.0, 6500.0)` | **bin / spot** | Visium-like capture region (6.5×6.5 mm). (`generate_data()` defaults to `"platform"`, which resolves to this value for bin/spot.) `False` disables the crop — the bin/spot grid then spans the molecule bounding box instead, so nothing is dropped and there's no empty border. When the tissue is smaller than the window, bin/spot output has all-zero observations filling that border — see [Empty bins and spots](#empty-bins-and-spots) below. |
+| `capture_window_center_um` | both | `(0.0, 0.0)` | **bin / spot / cell** | Center of all the windows above, in microns. |
 | `bin_size_um` | 2 | `8.0` | Bin width, in microns, for bin-level output. (`generate_data()` defaults to `20.0`.) Does **not** inherit from step 1 if omitted in step 2 — always falls back to this function's own default. |
 | `spot_spacing_um` | 2 | `100.0` | Center-to-center spacing between spots, in microns. |
 | `spot_radius_um` | 2 | `27.5` | Capture radius of each spot, in microns. |
