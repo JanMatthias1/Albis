@@ -182,17 +182,39 @@ Defaults are each function's own defaults — several differ from
 
 ### Platform-specific capture windows
 
-All three parameters below follow the shared step-1/step-2 pattern described
-in [Full parameter reference](#full-parameter-reference) above: `None` means
-"use what step 1 recorded", `False` disables that crop entirely, and an
-explicit `(w, h)` (or, for the center, `(x, y)`) pair overrides it. Pass the
-same value to both steps if you're using the two-step pattern.
+| Parameter | Step | Default | Meaning |
+| --- | :-: | ---: | --- |
+| `xenium_capture_window_um` | both | `(12000.0, 24000.0)` | Xenium-like capture region (12×24 mm) for **cell-level** output: cells whose in-plane centroid falls outside it are dropped in step 2. `None` (step 2) inherits the value recorded by step 1; `False` disables the cell crop; a `(w, h)` pair is used as-is. **If you split into two steps, pass it in step 1 too**, or step 2 inherits step 1's default. |
+| `capture_window_um` | both | `(6500.0, 6500.0)` | Width/height, in microns, of the fixed **bin/spot** capture window. See the note right below the table for exactly what this does. |
+| `capture_window_center_um` | both | `(0.0, 0.0)` | Center of the bin/spot and cell capture windows, in microns. Same both-steps/inheritance behavior as `capture_window_um`. |
 
-| Parameter | Step | Default | Crops | Meaning |
-| --- | :-: | ---: | --- | --- |
-| `xenium_capture_window_um` | both | `(12000.0, 24000.0)` | **cell** | Xenium-like capture region (12×24 mm). Cells whose in-plane centroid falls outside it are dropped in step 2. `False` disables the cell crop. |
-| `capture_window_um` | both | `(6500.0, 6500.0)` | **bin / spot** | Visium-like capture region (6.5×6.5 mm). (`generate_data()` defaults to `"platform"`, which resolves to this value for bin/spot.) `False` disables the crop — the bin/spot grid then spans the molecule bounding box instead, so nothing is dropped and there's no empty border. When the tissue is smaller than the window, bin/spot output has all-zero observations filling that border — see [Empty bins and spots](#empty-bins-and-spots) below. |
-| `capture_window_center_um` | both | `(0.0, 0.0)` | **bin / spot / cell** | Center of all the windows above, in microns. |
+> **`capture_window_um` — what each value actually does.** This is a
+> *fixed*, real-instrument-sized window (6.5×6.5 mm by default, matching a
+> real Visium slide) centered on `capture_window_center_um` — its size has
+> nothing to do with how big your simulated tissue is, so which of these
+> two cases you land in depends entirely on your `sphere_R_um`:
+> - **Default, or an explicit `(w, h)` pair** → the bin/spot grid always
+>   covers exactly that fixed window, regardless of tissue size:
+>   - Tissue **bigger** than the window: everything past the window edge is
+>     cropped — that part of the tissue is simply never captured, the same
+>     way a real slide can't capture tissue hanging off its edge.
+>   - Tissue **smaller** than the window: the grid still fills the whole
+>     window, so bin/spot positions beyond the tissue edge exist but
+>     capture nothing — all-zero observations padding out that empty
+>     border. See [Empty bins and spots](#empty-bins-and-spots) below.
+> - **`False`** → there is no fixed window at all. The grid instead sizes
+>   itself to exactly the molecule bounding box (the tissue's own extent),
+>   so the *entire* tissue is captured no matter how large it is, and
+>   there's no empty border either way.
+>
+> `None` (step 2 only) means "use whatever step 1 resolved this to" —
+> that's the step-1/step-2 inheritance mechanism from
+> [Full parameter reference](#full-parameter-reference) above, a separate
+> question from the three behaviors above. Pass the same value to both
+> steps if you're using the two-step pattern.
+
+| Parameter | Step | Default | Meaning |
+| --- | :-: | ---: | --- |
 | `bin_size_um` | 2 | `8.0` | Bin width, in microns, for bin-level output. (`generate_data()` defaults to `20.0`.) Does **not** inherit from step 1 if omitted in step 2 — always falls back to this function's own default. |
 | `spot_spacing_um` | 2 | `100.0` | Center-to-center spacing between spots, in microns. |
 | `spot_radius_um` | 2 | `27.5` | Capture radius of each spot, in microns. |
