@@ -380,13 +380,10 @@ and gene panel from scratch for each call. If you need multiple
 resolutions — several modalities, several slice axes, or both — from the same
 underlying tissue, or need a parameter `generate_data()` doesn't expose (e.g.
 `theta`, `domain_size_factors`, `noise_scale`), use the lower-level simulator
-API instead: `ab.simulate_3d_molecule_sphere_multires(...)`,
-`simulate_3d_molecule_sphere_base(...)`, and
-`section_3d_molecule_sphere(...)`.
+API instead: `ab.simulate_3d_molecule_sphere_multires(...)`.
 
-See **[LOW_LEVEL_SIMULATOR.md](LOW_LEVEL_SIMULATOR.md)** for the one-shot vs.
-two-step calling patterns, worked examples, and the full parameter reference
-for this API.
+See **[LOW_LEVEL_SIMULATOR.md](LOW_LEVEL_SIMULATOR.md)** for worked examples
+and the full parameter reference for this API.
 
 For everyday use, prefer `ab.generate_data(...)`: it wraps this API and
 returns exactly one `AnnData` object for the requested modality and axis,
