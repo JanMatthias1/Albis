@@ -10,8 +10,11 @@ This folder contains a package-focused tutorial for `albis`.
   which exposes every simulation parameter as one plain dictionary you can
   pass with `**config` — including several expression-model parameters
   `generate_data()` doesn't expose at all. See
-  [`../LOW_LEVEL_SIMULATOR.md`](../LOW_LEVEL_SIMULATOR.md) for the full
-  written reference this notebook walks through.
+  [`../LOW_LEVEL_SIMULATOR.md`](../LOW_LEVEL_SIMULATOR.md) for the written
+  reference to the one-shot `simulate_3d_molecule_sphere_multires` call this
+  notebook walks through, and
+  [`../LOW_LEVEL_SIMULATOR_STEPS.md`](../LOW_LEVEL_SIMULATOR_STEPS.md) for the
+  `_base`/`section_3d_molecule_sphere` two-step pattern it also demonstrates.
 - Both notebooks are intentionally small and use reduced simulation settings
   so they can run interactively during development.
 
