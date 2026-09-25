@@ -10,7 +10,7 @@ def _load_matplotlib():
     except ImportError as exc:
         raise ImportError(
             "Plotting requires the optional dependency. Install it with "
-            "`python -m pip install 'sim-app[plot]'`."
+            "`python -m pip install 'albis[plot]'`."
         ) from exc
     return plt, Line2D
 

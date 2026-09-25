@@ -1,12 +1,12 @@
 [build-system]
-requires = ["setuptools>=64", "wheel"]
+requires = ["setuptools>=77.0.3", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "albis"
 version = "0.1.0"
 description = "Albis - A muLti-resolution Biological In-silico Simulator for 3D spatial transcriptomics."
-readme = "README.md"
+readme = "README_PYPI.md"
 requires-python = ">=3.10"
 authors = [
     { name = "Jan Matthias" },
@@ -44,6 +44,7 @@ dev = [
 
 [project.urls]
 Homepage = "https://github.com/JanMatthias1/Albis"
+Documentation = "https://github.com/JanMatthias1/Albis#readme"
 Repository = "https://github.com/JanMatthias1/Albis"
 Issues = "https://github.com/JanMatthias1/Albis/issues"
 
