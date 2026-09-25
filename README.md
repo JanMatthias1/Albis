@@ -1,6 +1,6 @@
-# Albis
+# Albis: simulation of multi-resolution and multi-dimensional spatial transcriptomics data
 
-**Albis** - A muLti-resolution Biological In-silico Simulator - is a Python
+**Albis** is a Python
 package for generating synthetic 3D spatial-transcriptomics data as analysis-ready
 [`AnnData`](https://anndata.readthedocs.io/) objects.
 It is structured as an installable package with a small tutorial workflow.
@@ -32,29 +32,13 @@ path = ab.save(adata, "simulation.h5ad")
 
 ## Installation
 
-For local development, install the package from the repository root:
+Install Albis, including plotting support:
 
 ```bash
-python -m pip install -e .
-```
-
-Install optional static plotting support as well:
-
-```bash
-python -m pip install -e ".[plot]"
+pip install albis
 ```
 
 The PyPI package name and the Python import name are both `albis` (`pip install albis`, `import albis as ab`).
-
-## Development
-
-```bash
-python -m pip install -e ".[dev,plot]"
-python -m pytest
-```
-
-This repository now contains only the Python package. Manuscript, paper,
-notebook, and tutorial material lives in the separate `sim_paper` repository.
 
 ## Tutorial
 
@@ -68,20 +52,21 @@ Two package-focused tutorials are available:
   the low-level simulator API, with every parameter exposed as one plain
   dictionary (see [Low-level simulator](#low-level-simulator) below).
 
-To run the tutorial notebooks, install with the tutorial extras:
+Download a notebook from [`tutorial/`](tutorial/) and open it in Jupyter
+using the environment where you installed Albis. No repository clone or
+local-path configuration is needed.
+
+If you need Jupyter as well:
 
 ```bash
-pip install -e ".[tutorial,plot]"     # from a clone; or: pip install "albis[tutorial,plot]"
-jupyter-notebook --no-browser --ip=0.0.0.0 --port 8888
+pip install notebook
+jupyter notebook
 ```
 
-On a conda-based cluster, `env/create_tutorial_env.sh` does the same in a
-dedicated prefix env and registers a Jupyter kernel:
+Inside an existing notebook, `%pip install albis` installs into its active
+kernel. Restart the kernel after installation if needed.
 
-```bash
-bash env/create_tutorial_env.sh          # builds env/albis-tutorial/
-conda activate env/albis-tutorial
-```
+See the [tutorial guide](tutorial/README.md) for all six notebooks.
 
 ## Quick start
 

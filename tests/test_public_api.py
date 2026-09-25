@@ -10,7 +10,7 @@ _SMALL = dict(slice_axis="Z", n_cells=300, n_slices=1, sphere_radius_um=250.0, s
 
 class PublicApiTest(unittest.TestCase):
     def test_public_api_exports_expected_symbols(self):
-        self.assertEqual(ab.__version__, "0.1.0")
+        self.assertEqual(ab.__version__, "0.1.1")
         self.assertTrue(callable(ab.generate_data))
         self.assertTrue(callable(ab.example_data))
         self.assertTrue(callable(ab.describe))

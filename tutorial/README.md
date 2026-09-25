@@ -1,6 +1,6 @@
 # albis tutorial
 
-This folder contains a package-focused tutorial for `albis`.
+This folder contains six tutorials for `albis`.
 
 - `higher_level_api_tutorial.ipynb` shows the app-facing `generate_data()`
   workflow: generate one dataset, inspect the returned `AnnData`, plot
@@ -18,26 +18,34 @@ This folder contains a package-focused tutorial for `albis`.
 - Both notebooks are intentionally small and use reduced simulation settings
   so they can run interactively during development.
 
-Install `albis` with the notebook + plotting extras (from a clone of this
-repo, or from PyPI):
+- `xenium_cell_tutorial.ipynb` demonstrates cell-resolution simulation.
+- `visiumHD_bin_tutorial.ipynb` demonstrates bin-resolution simulation.
+- `visium_spot_tutorial.ipynb` demonstrates spot-resolution simulation.
+- `strong_domain_mix_tutorial.ipynb` demonstrates stronger domain-specific
+  cell-type mixtures across the three resolutions.
+
+## Installation and launch
+
+Install Albis, including plotting support:
 
 ```bash
-pip install -e ".[tutorial,plot]"      # from a clone
-# or: pip install "albis[tutorial,plot]"
+pip install albis
 ```
 
-Then launch Jupyter:
+Download the notebook you want to run. Open it in Jupyter using the same
+Python environment; the notebooks import the installed package directly
+and can run outside the repository.
+
+If Jupyter is not already installed:
 
 ```bash
-conda activate albis
-jupyter-notebook --no-browser --ip=0.0.0.0 --port 8888
+pip install notebook
+jupyter notebook
 ```
 
-The default port is `8888`. Override it when needed:
-
-```bash
-jupyter-notebook --no-browser --ip=0.0.0.0 --port 8890
-```
+Inside an existing notebook, use `%pip install albis` to install into the
+active kernel, then restart the kernel if needed. Output files are saved
+under `outputs/` relative to the notebook's working directory.
 
 The paper, manuscript, and larger research examples live in the separate
 `sim_paper` repository.

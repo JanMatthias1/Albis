@@ -9,8 +9,8 @@ def _load_matplotlib():
         from matplotlib.lines import Line2D
     except ImportError as exc:
         raise ImportError(
-            "Plotting requires the optional dependency. Install it with "
-            "`python -m pip install 'albis[plot]'`."
+            "Matplotlib is a required Albis dependency but could not be imported. "
+            "Install Albis with its dependencies using `python -m pip install albis`."
         ) from exc
     return plt, Line2D
 

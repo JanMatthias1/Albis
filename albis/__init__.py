@@ -1,4 +1,4 @@
-"""Public API for Albis - A muLti-resolution Biological In-silico Simulator."""
+"""Albis: simulation of multi-resolution and multi-dimensional spatial transcriptomics data."""
 
 from .api import DEFAULT_PARAMETERS, describe, example_data, generate_data, save
 from .plotting import plot
@@ -19,4 +19,4 @@ __all__ = [
     "simulate_3d_molecule_sphere_base",
     "simulate_3d_molecule_sphere_multires",
 ]
-__version__ = "0.1.0"
+__version__ = "0.1.1"
