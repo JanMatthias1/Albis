@@ -1,6 +1,6 @@
 # Low-level simulator reference
 
-`ab.generate_data(...)` (documented in the main [README](README.md)) is a
+`ab.generate_data(...)` (documented in [HIGH_LEVEL_SIMULATOR.md](HIGH_LEVEL_SIMULATOR.md)) is a
 curated, tutorial-scale entry point: it always builds exactly one
 modality/axis pair, and only exposes the parameters listed in its
 `DEFAULT_PARAMETERS` dict (`albis/api.py`) — anything not in that dict
@@ -96,7 +96,7 @@ Defaults are each function's own defaults — several differ from
 > yourself, `simulate_3d_molecule_sphere_multires` raises a `UserWarning`
 > explaining that every domain will get an identical, fully uniform
 > cell-type distribution — no domain-specific enrichment at all. See the
-> main README's [section 5 note](README.md#5-cell-types-genes-and-molecules)
+> high-level guide's [section 5 note](HIGH_LEVEL_SIMULATOR.md#5-cell-types-genes-and-molecules)
 > for the full explanation.
 
 ### Gene programs and per-cell gene expression
