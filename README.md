@@ -14,7 +14,7 @@ an analysis-ready [`AnnData`](https://anndata.readthedocs.io/) object carrying
 effects, so it can be used to benchmark clustering, deconvolution, and slice
 alignment methods.
 
-![Overview of the Albis simulation pipeline: 3D tissue geometry, tissue regions, cell types, gene counts, RNA coordinates, and observed modalities (cell, bin, spot)](figure_1_cropped.png)
+![Overview of the Albis simulation pipeline: 3D tissue geometry, tissue regions, cell types, gene counts, RNA coordinates, and observed modalities (cell, bin, spot)](docs/figure_1_cropped.png)
 
 ## Installation
 
