@@ -19,4 +19,4 @@ __all__ = [
     "simulate_3d_molecule_sphere_base",
     "simulate_3d_molecule_sphere_multires",
 ]
-__version__ = "0.1.1"
+__version__ = "0.1.2"

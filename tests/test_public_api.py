@@ -1,8 +1,10 @@
 import unittest
 
 import numpy as np
+from scipy.spatial import cKDTree
 
 import albis as ab
+from albis.simulation_sphere import sample_nonoverlapping_cells_in_sphere
 
 
 _SMALL = dict(slice_axis="Z", n_cells=300, n_slices=1, sphere_radius_um=250.0, seed=7)
@@ -10,7 +12,7 @@ _SMALL = dict(slice_axis="Z", n_cells=300, n_slices=1, sphere_radius_um=250.0, s
 
 class PublicApiTest(unittest.TestCase):
     def test_public_api_exports_expected_symbols(self):
-        self.assertEqual(ab.__version__, "0.1.1")
+        self.assertEqual(ab.__version__, "0.1.2")
         self.assertTrue(callable(ab.generate_data))
         self.assertTrue(callable(ab.example_data))
         self.assertTrue(callable(ab.describe))
@@ -65,6 +67,16 @@ class PublicApiTest(unittest.TestCase):
         adata = ab.generate_data(output="cell", **_SMALL)
         self.assertNotIn("is_empty", adata.obs)
         self.assertNotIn("unassigned", set(adata.obs["domain_true"]))
+
+    def test_placed_cells_do_not_overlap(self):
+        # 1,000 cells: all placed before the first KD-tree rebuild (rebuild_every=2000);
+        # 5,000 cells: spans two rebuilds. Both overlapped in albis <= 0.1.1.
+        for n_cells, sphere_r in ((1_000, 200.0), (5_000, 600.0)):
+            centers, radii, _ = sample_nonoverlapping_cells_in_sphere(n_cells, sphere_R=sphere_r, seed=2025)
+            pairs = np.array(sorted(cKDTree(centers).query_pairs(2 * radii.max())))
+            dist = np.linalg.norm(centers[pairs[:, 0]] - centers[pairs[:, 1]], axis=1)
+            n_overlapping = int(np.sum(dist < radii[pairs[:, 0]] + radii[pairs[:, 1]]))
+            self.assertEqual(n_overlapping, 0, f"{n_cells} cells in R={sphere_r}")
 
 
 if __name__ == "__main__":

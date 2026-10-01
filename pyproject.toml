@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "albis"
-version = "0.1.1"
+version = "0.1.2"
 description = "Albis: simulation of multi-resolution and multi-dimensional spatial transcriptomics data"
 readme = "README_PYPI.md"
 requires-python = ">=3.10"

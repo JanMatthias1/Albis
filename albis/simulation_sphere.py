@@ -331,6 +331,13 @@ def sample_nonoverlapping_cells_in_sphere(
     r_max_current = 0.0
     radii_pool = sample_cell_radii(n_cells, rng=rng, **radius_kwargs)
 
+    # The KD-tree is only rebuilt every `rebuild_every` accepted cells, so cells
+    # placed since the last rebuild are not in it yet; they are kept in a small
+    # buffer and checked by brute force.
+    n_in_tree = 0
+    recent_centers = np.empty((rebuild_every, 3))
+    recent_radii = np.empty(rebuild_every)
+
     accepted, attempts = 0, 0
     while accepted < n_cells and attempts < max_attempts:
         attempts += 1
@@ -340,15 +347,24 @@ def sample_nonoverlapping_cells_in_sphere(
         if np.linalg.norm(c - np.array(center)) + r > sphere_R:
             continue
 
-        if (not allow_overlap) and (tree is not None) and (accepted > 0):
-            idxs = tree.query_ball_point(c, r + r_max_current)
-            if idxs:
-                neigh_centers = np.asarray([centers[i] for i in idxs])
-                neigh_radii = np.asarray([radii[i] for i in idxs])
-                d = np.linalg.norm(neigh_centers - c[None, :], axis=1)
-                if np.any(d < (neigh_radii + r)):
+        if (not allow_overlap) and (accepted > 0):
+            if tree is not None:
+                idxs = tree.query_ball_point(c, r + r_max_current)
+                if idxs:
+                    neigh_centers = np.asarray([centers[i] for i in idxs])
+                    neigh_radii = np.asarray([radii[i] for i in idxs])
+                    d = np.linalg.norm(neigh_centers - c[None, :], axis=1)
+                    if np.any(d < (neigh_radii + r)):
+                        continue
+
+            n_recent = accepted - n_in_tree
+            if n_recent:
+                d = np.linalg.norm(recent_centers[:n_recent] - c[None, :], axis=1)
+                if np.any(d < (recent_radii[:n_recent] + r)):
                     continue
 
+        recent_centers[accepted - n_in_tree] = c
+        recent_radii[accepted - n_in_tree] = r
         centers.append(c)
         radii.append(r)
         accepted += 1
@@ -356,6 +372,7 @@ def sample_nonoverlapping_cells_in_sphere(
 
         if (accepted % rebuild_every) == 0:
             tree = cKDTree(np.asarray(centers))
+            n_in_tree = accepted
 
     if accepted < n_cells:
         raise RuntimeError(
